@@ -12,27 +12,29 @@ import {
 import { useRouter } from "expo-router";
 import { useDispatch } from "react-redux";
 import { logout } from "../store/store";
-import { removeStorage } from "../utils/authStorage";
+import { closeSession } from "../utils/logout";
 
 export default function SettingsScreen() {
     const router = useRouter();
     const dispatch = useDispatch();
 
+    
     const handleLogout = async () => {
-        try {
-            await removeStorage("user_token");
-            await removeStorage("user_info");
+    try {
+        await closeSession();
+        dispatch(logout());
+        router.replace("/");
+    } catch (error) {
+        console.error("Error al cerrar sesión:", error);
 
-            dispatch(logout());
-            router.replace("/");
-        } catch (error) {
-            console.error("Error al cerrar sesión:", error);
+        Alert.alert(
+        "Aviso",
+        "La sesión local se cerró, pero no se pudo confirmar la revocación en el servidor."
+        );
 
-            Alert.alert(
-                "Error",
-                "No se pudo cerrar sesión. Revisa la consola para ver el error."
-            );
-        }
+        dispatch(logout());
+        router.replace("/");
+    }
     };
 
     const options = [

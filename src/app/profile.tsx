@@ -13,7 +13,7 @@ import { useDispatch, useSelector } from "react-redux";
 
 import MenuItem from "../components/MenuItem";
 import { RootState, logout } from "../store/store";
-import { removeStorage } from "../utils/authStorage";
+import { closeSession } from "../utils/logout";
 
 export default function ProfileScreen() {
     const router = useRouter();
@@ -39,19 +39,23 @@ export default function ProfileScreen() {
         }
     };
 
+    
     const handleLogout = async () => {
-        try {
-            await removeStorage("user_token");
-            await removeStorage("user_info");
+    try {
+        await closeSession();
+        dispatch(logout());
+        router.replace("/");
+    } catch (error) {
+        console.error("Error al cerrar sesión:", error);
 
-            dispatch(logout());
-            router.replace("/");
-        } catch {
-            Alert.alert(
-                "Error",
-                "No se pudo cerrar la sesión correctamente."
-            );
-        }
+        Alert.alert(
+        "Aviso",
+        "La sesión local se cerró, pero no se pudo confirmar la revocación en el servidor."
+        );
+
+        dispatch(logout());
+        router.replace("/");
+    }
     };
 
     return (

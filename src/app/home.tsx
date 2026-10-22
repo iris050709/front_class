@@ -2,19 +2,18 @@
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-    Alert,
     ScrollView,
     StatusBar,
     StyleSheet,
     Text,
     TouchableOpacity,
-    View,
+    View
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 
 import SideMenu from "../components/SideMenu";
 import { RootState, logout } from "../store/store";
-import { removeStorage } from "../utils/authStorage";
+import { closeSession } from "../utils/logout";
 
 export default function HomeScreen() {
     const router = useRouter();
@@ -31,18 +30,20 @@ export default function HomeScreen() {
             ? user.email.split("@")[0]
             : "Usuario";
 
+    
     const handleLogout = async () => {
+        setMenuOpen(false);
+
         try {
-            setMenuOpen(false);
-            await removeStorage("user_token");
-            await removeStorage("user_info");
+            await closeSession();
+        } catch (error) {
+            console.error("Error al cerrar sesión:", error);
+        } finally {
+            // Limpiar el estado de autenticación de Redux.
             dispatch(logout());
+
+            // Volver a la pantalla de inicio de sesión.
             router.replace("/");
-        } catch {
-            Alert.alert(
-                "Error",
-                "No se pudo cerrar la sesión correctamente."
-            );
         }
     };
 
