@@ -2,104 +2,52 @@
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
-const TOKEN_KEY = 'user_token';
-const REFRESH_TOKEN_KEY = 'refresh_token';
+const ACCESS_TOKEN_KEY = 'accessToken';
+const REFRESH_TOKEN_KEY = 'refreshToken';
 
-const webStorageAvailable = () =>
-  Platform.OS === 'web' && typeof localStorage !== 'undefined';
+// Guardar access token
+export async function saveAccessToken(token: string): Promise<void> {
+  if (Platform.OS === 'web') {
+    localStorage.setItem(ACCESS_TOKEN_KEY, token);
+  } else {
+    await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, token);
+  }
+}
 
-export const storage = {
-  async saveToken(token: string): Promise<void> {
-    try {
-      if (Platform.OS === 'web') {
-        if (!webStorageAvailable()) {
-          throw new Error('El almacenamiento web no está disponible');
-        }
-        localStorage.setItem(TOKEN_KEY, token);
-      } else {
-        await SecureStore.setItemAsync(TOKEN_KEY, token);
-      }
-    } catch (error) {
-      console.error('Error guardando token:', error);
-      throw new Error('No se pudo guardar el token');
-    }
-  },
+// Obtener access token
+export async function getAccessToken(): Promise<string | null> {
+  if (Platform.OS === 'web') {
+    return localStorage.getItem(ACCESS_TOKEN_KEY);
+  }
 
-  async getToken(): Promise<string | null> {
-    try {
-      if (Platform.OS === 'web') {
-        return webStorageAvailable()
-          ? localStorage.getItem(TOKEN_KEY)
-          : null;
-      }
-      return await SecureStore.getItemAsync(TOKEN_KEY);
-    } catch (error) {
-      console.error('Error obteniendo token:', error);
-      return null;
-    }
-  },
+  return await SecureStore.getItemAsync(ACCESS_TOKEN_KEY);
+}
 
-  async removeToken(): Promise<void> {
-    try {
-      if (Platform.OS === 'web') {
-        if (webStorageAvailable()) {
-          localStorage.removeItem(TOKEN_KEY);
-        }
-      } else {
-        await SecureStore.deleteItemAsync(TOKEN_KEY);
-      }
-    } catch (error) {
-      console.error('Error eliminando token:', error);
-    }
-  },
+// Guardar refresh token
+export async function saveRefreshToken(token: string): Promise<void> {
+  if (Platform.OS === 'web') {
+    localStorage.setItem(REFRESH_TOKEN_KEY, token);
+  } else {
+    await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, token);
+  }
+}
 
-  async saveRefreshToken(token: string): Promise<void> {
-    try {
-      if (Platform.OS === 'web') {
-        if (!webStorageAvailable()) {
-          throw new Error('El almacenamiento web no está disponible');
-        }
-        localStorage.setItem(REFRESH_TOKEN_KEY, token);
-      } else {
-        await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, token);
-      }
-    } catch (error) {
-      console.error('Error guardando refresh token:', error);
-    }
-  },
+// Obtener refresh token
+export async function getRefreshToken(): Promise<string | null> {
+  if (Platform.OS === 'web') {
+    return localStorage.getItem(REFRESH_TOKEN_KEY);
+  }
 
-  async getRefreshToken(): Promise<string | null> {
-    try {
-      if (Platform.OS === 'web') {
-        return webStorageAvailable()
-          ? localStorage.getItem(REFRESH_TOKEN_KEY)
-          : null;
-      }
-      return await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
-    } catch (error) {
-      console.error('Error obteniendo refresh token:', error);
-      return null;
-    }
-  },
+  return await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
+}
 
-  async removeRefreshToken(): Promise<void> {
-    try {
-      if (Platform.OS === 'web') {
-        if (webStorageAvailable()) {
-          localStorage.removeItem(REFRESH_TOKEN_KEY);
-        }
-      } else {
-        await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
-      }
-    } catch (error) {
-      console.error('Error eliminando refresh token:', error);
-    }
-  },
-
-  async clearAll(): Promise<void> {
-    await Promise.all([
-      this.removeToken(),
-      this.removeRefreshToken(),
-    ]);
-  },
-};
+// Eliminar ambos tokens
+export async function clearTokens(): Promise<void> {
+  if (Platform.OS === 'web') {
+    localStorage.removeItem(ACCESS_TOKEN_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
+  } else {
+    await SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY);
+    await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
+  }
+}

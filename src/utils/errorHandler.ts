@@ -1,108 +1,85 @@
-import axios, { AxiosError } from 'axios';
-import { ApiError, ErrorType } from '../types/errors';
+/**
+ * Utilidad para manejar errores de red y API
+ * Convierte errores técnicos en mensajes amigables para el usuario
+ */
 
-export const handleApiError = (error: unknown): ApiError => {
-  if (axios.isAxiosError(error)) {
-    const axiosError = error as AxiosError<any>;
-    
+import { AxiosError } from 'axios';
+
+export interface ApiError {
+  message: string;
+  statusCode?: number;
+}
+
+/**
+ * Convierte un error de Axios en un mensaje amigable
+ */
+export function handleApiError(error: unknown): ApiError {
+  if (error instanceof AxiosError) {
+    // Error de respuesta del servidor
+    if (error.response) {
+      const status = error.response.status;
+      const serverMessage = error.response.data?.error;
+
+      // Errores específicos por código de estado
+      switch (status) {
+        case 400:
+          return {
+            message: serverMessage || 'Datos inválidos. Por favor, revisa la información.',
+            statusCode: status,
+          };
+        case 401:
+          return {
+            message: 'Sesión expirada. Por favor, inicia sesión nuevamente.',
+            statusCode: status,
+          };
+        case 403:
+          return {
+            message: 'No tienes permisos para realizar esta acción.',
+            statusCode: status,
+          };
+        case 404:
+          return {
+            message: 'El recurso solicitado no existe.',
+            statusCode: status,
+          };
+        case 409:
+          return {
+            message: serverMessage || 'El recurso ya existe.',
+            statusCode: status,
+          };
+        case 500:
+          return {
+            message: 'Error del servidor. Intenta más tarde.',
+            statusCode: status,
+          };
+        default:
+          return {
+            message: serverMessage || `Error del servidor (${status})`,
+            statusCode: status,
+          };
+      }
+    }
+
     // Error de red (sin conexión)
-    if (!axiosError.response) {
-      return new ApiError(
-        ErrorType.NETWORK_ERROR,
-        'Sin conexión a internet. Verifica tu conexión e intenta de nuevo.',
-        0
-      );
-    }
-
-    // Timeout
-    if (axiosError.code === 'ECONNABORTED') {
-      return new ApiError(
-        ErrorType.TIMEOUT,
-        'La solicitud tardó demasiado. Intenta de nuevo.',
-        408
-      );
-    }
-
-    const status = axiosError.response.status;
-    const data = axiosError.response.data;
-
-    switch (status) {
-      case 400:
-        return new ApiError(
-          ErrorType.VALIDATION_ERROR,
-          data?.message || 'Los datos enviados no son válidos.',
-          status,
-          data
-        );
-      
-      case 401:
-        return new ApiError(
-          ErrorType.UNAUTHORIZED,
-          'Tu sesión ha expirado. Por favor, inicia sesión de nuevo.',
-          status,
-          data
-        );
-      
-      case 403:
-        return new ApiError(
-          ErrorType.FORBIDDEN,
-          'No tienes permisos para realizar esta acción.',
-          status,
-          data
-        );
-      
-      case 404:
-        return new ApiError(
-          ErrorType.NOT_FOUND,
-          data?.message || 'El recurso solicitado no existe.',
-          status,
-          data
-        );
-      
-      case 409:
-        return new ApiError(
-          ErrorType.VALIDATION_ERROR,
-          data?.message || 'Ya existe un registro con estos datos.',
-          status,
-          data
-        );
-      
-      case 500:
-        return new ApiError(
-          ErrorType.SERVER_ERROR,
-          'Error en el servidor. Intenta más tarde.',
-          status,
-          data
-        );
-      
-      default:
-        return new ApiError(
-          ErrorType.SERVER_ERROR,
-          data?.message || 'Ha ocurrido un error inesperado.',
-          status,
-          data
-        );
+    if (error.request) {
+      return {
+        message: 'Sin conexión a internet. Verifica tu red.',
+      };
     }
   }
 
-  if (error instanceof ApiError) {
-    return error;
-  }
+  // Error genérico
+  return {
+    message: 'Ocurrió un error inesperado. Intenta nuevamente.',
+  };
+}
 
-  return new ApiError(
-    ErrorType.UNKNOWN,
-    'Ha ocurrido un error inesperado.'
-  );
-};
-
-export const getErrorMessage = (error: unknown): string => {
-  if (error instanceof ApiError) {
-    return error.message;
+/**
+ * Verifica si un error es de autenticación (401)
+ */
+export function isAuthError(error: unknown): boolean {
+  if (error instanceof AxiosError) {
+    return error.response?.status === 401;
   }
-  
-  if (error instanceof Error) {
-    return error.message;
-  }
-  
-  return 'Ha ocurrido un error inesperado.';
-};
+  return false;
+}

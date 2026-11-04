@@ -1,74 +1,95 @@
-import React, { useEffect, useState } from "react";
-import { ActivityIndicator, View } from "react-native";
-import { Provider, useDispatch } from "react-redux";
 import { Stack } from "expo-router";
+import { useEffect, useState } from "react";
+import { Provider, useDispatch } from "react-redux";
 
-import { store, setUser, setToken } from "../store/store"; // Ajusta la ruta a tu store
-import { getStorage } from "../utils/authStorage"; // Ajusta la ruta a tu utils
+import { getCurrentUser } from "../api/auth.api";
+import { AppDispatch, setToken, setUser, store } from "../store/store";
+import {
+    clearTokens,
+    getAccessToken,
+} from "../utils/storage";
 
-function AuthInitializer({ children }: { children: React.ReactNode }) {
-    const dispatch = useDispatch();
-    const [isRestoring, setIsRestoring] = useState(true);
+import Loading from "../components/Loading";
 
-    useEffect(() => {
-        const restoreSession = async () => {
-            try {
-                const token = await getStorage("user_token");
-                const savedUser = await getStorage("user_info");
+function AppInitializer() {
+  const dispatch = useDispatch<AppDispatch>();
+  const [checkingSession, setCheckingSession] = useState(true);
 
-                if (token && savedUser) {
-                    dispatch(setToken(token));
-                    dispatch(setUser(JSON.parse(savedUser)));
-                }
-            } catch (error) {
-                console.error("Error al restaurar sesión:", error);
-            } finally {
-                setIsRestoring(false);
-            }
-        };
+  useEffect(() => {
+    let active = true;
 
-        restoreSession();
-    }, [dispatch]);
+    const initializeSession = async () => {
+      try {
+        const token = await getAccessToken();
 
-    if (isRestoring) {
-        return (
-            <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#18181b" }}>
-                <ActivityIndicator size="large" color="#ffffff" />
-            </View>
-        );
-    }
+        if (!token) {
+          dispatch(setToken(null));
+          dispatch(setUser(null));
+          return;
+        }
 
-    return <>{children}</>;
+        // Recuperar los datos del usuario desde la API
+        const user = await getCurrentUser();
+
+        if (!active) return;
+
+        // Restaurar la sesión en Redux
+        dispatch(setToken(token));
+        dispatch(setUser(user));
+
+      } catch (error) {
+        console.log("Error al recuperar la sesión:", error);
+
+        await clearTokens();
+
+        if (!active) return;
+
+        dispatch(setToken(null));
+        dispatch(setUser(null));
+
+      } finally {
+        if (active) {
+          setCheckingSession(false);
+        }
+      }
+    };
+
+    initializeSession();
+
+    return () => {
+      active = false;
+    };
+  }, [dispatch]);
+
+  // No mostrar las pantallas hasta terminar la comprobación
+  if (checkingSession) {
+    return <Loading message="Verificando sesión..." />;
+  }
+
+  return (
+    <Stack>
+      <Stack.Screen
+        name="index"
+        options={{ headerShown: false }}
+      />
+
+      <Stack.Screen
+        name="(tabs)"
+        options={{ headerShown: false }}
+      />
+
+      <Stack.Screen
+        name="student/[id]"
+        options={{ title: "Detalle de Estudiante" }}
+      />
+    </Stack>
+  );
 }
 
 export default function RootLayout() {
-    return (
-        <Provider store={store}>
-            <AuthInitializer>
-                <Stack>
-
-                    <Stack.Screen
-                        name="index"
-                        options={{ headerShown: false }}
-                    />
-
-                    <Stack.Screen
-                        name="home"
-                        options={{ headerShown: false }}
-                    />
-
-                    <Stack.Screen
-                        name="profile"
-                        options={{ headerShown: false }}
-                    />
-
-                    <Stack.Screen
-                        name="settings"
-                        options={{ headerShown: false }}
-                    />
-
-                </Stack>
-            </AuthInitializer>
-        </Provider>
-    );
+  return (
+    <Provider store={store}>
+      <AppInitializer />
+    </Provider>
+  );
 }

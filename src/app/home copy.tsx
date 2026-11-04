@@ -7,30 +7,37 @@ import {
     StyleSheet,
     Text,
     TouchableOpacity,
-    View
+    View,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 
 import SideMenu from "../components/SideMenu";
-import { RootState, logout } from "../store/store";
+import {
+    logout,
+    type AppDispatch,
+    type RootState,
+} from "../store/store";
 import { closeSession } from "../utils/logout";
 
 export default function HomeScreen() {
     const router = useRouter();
-    const dispatch = useDispatch();
+    const dispatch = useDispatch<AppDispatch>();
+
     const [menuOpen, setMenuOpen] = useState(false);
 
+    // Obtener el usuario desde Redux.
     const user = useSelector(
         (state: RootState) => state.auth.user
     );
 
+    // Obtener el nombre para mostrarlo en el encabezado.
     const firstName = user?.nombre?.trim()
         ? user.nombre.trim().split(" ")[0]
         : user?.email
             ? user.email.split("@")[0]
             : "Usuario";
 
-    
+    // Cerrar sesión.
     const handleLogout = async () => {
         setMenuOpen(false);
 
@@ -39,10 +46,10 @@ export default function HomeScreen() {
         } catch (error) {
             console.error("Error al cerrar sesión:", error);
         } finally {
-            // Limpiar el estado de autenticación de Redux.
+            // Limpiar el estado de Redux.
             dispatch(logout());
 
-            // Volver a la pantalla de inicio de sesión.
+            // Regresar al inicio de sesión.
             router.replace("/");
         }
     };
@@ -51,7 +58,6 @@ export default function HomeScreen() {
         <View style={styles.container}>
             <StatusBar
                 barStyle="dark-content"
-                backgroundColor="#F5F8FC"
             />
 
             <ScrollView
@@ -72,6 +78,7 @@ export default function HomeScreen() {
                         <Text style={styles.headerGreeting}>
                             Hola, {firstName} 👋
                         </Text>
+
                         <Text style={styles.headerSubtitle}>
                             Qué bueno tenerte aquí
                         </Text>
@@ -115,11 +122,13 @@ export default function HomeScreen() {
                     <Text style={styles.sectionTitle}>
                         Accesos rápidos
                     </Text>
+
                     <Text style={styles.sectionSubtitle}>
                         Selecciona una opción
                     </Text>
                 </View>
 
+                {/* PERFIL */}
                 <TouchableOpacity
                     style={styles.optionCard}
                     onPress={() => router.push("/profile")}
@@ -133,6 +142,7 @@ export default function HomeScreen() {
                         <Text style={styles.optionTitle}>
                             Mi perfil
                         </Text>
+
                         <Text style={styles.optionDescription}>
                             Consulta tus datos personales
                         </Text>
@@ -141,26 +151,6 @@ export default function HomeScreen() {
                     <Text style={styles.arrow}>›</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity
-                    style={styles.optionCard}
-                    onPress={() => router.push("/settings")}
-                    activeOpacity={0.75}
-                >
-                    <View style={[styles.optionIcon, styles.settingsIcon]}>
-                        <Text style={styles.emoji}>⚙️</Text>
-                    </View>
-
-                    <View style={styles.optionInfo}>
-                        <Text style={styles.optionTitle}>
-                            Configuración
-                        </Text>
-                        <Text style={styles.optionDescription}>
-                            Administra las opciones de tu cuenta
-                        </Text>
-                    </View>
-
-                    <Text style={styles.arrow}>›</Text>
-                </TouchableOpacity>
             </ScrollView>
 
             {/* MENÚ LATERAL */}
@@ -170,10 +160,6 @@ export default function HomeScreen() {
                 onProfile={() => {
                     setMenuOpen(false);
                     router.push("/profile");
-                }}
-                onSettings={() => {
-                    setMenuOpen(false);
-                    router.push("/settings");
                 }}
                 onLogout={handleLogout}
             />
@@ -193,7 +179,6 @@ const styles = StyleSheet.create({
         paddingBottom: 35,
     },
 
-    // Encabezado
     header: {
         flexDirection: "row",
         alignItems: "center",
@@ -251,7 +236,6 @@ const styles = StyleSheet.create({
         fontWeight: "900",
     },
 
-    // Tarjeta de bienvenida
     heroCard: {
         backgroundColor: "#FFFFFF",
         borderRadius: 26,
@@ -328,7 +312,6 @@ const styles = StyleSheet.create({
         lineHeight: 23,
     },
 
-    // Accesos rápidos
     section: {
         marginBottom: 20,
     },
@@ -373,10 +356,6 @@ const styles = StyleSheet.create({
 
     profileIcon: {
         backgroundColor: "#E4F0FF",
-    },
-
-    settingsIcon: {
-        backgroundColor: "#EEE9FF",
     },
 
     emoji: {

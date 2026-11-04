@@ -15,7 +15,6 @@ export default function SideMenu({
     visible,
     onClose,
     onProfile,
-    onSettings,
     onLogout,
 }: SideMenuProps) {
     const user = useSelector(
@@ -120,13 +119,6 @@ export default function SideMenu({
                         />
                     </View>
 
-                    <View style={styles.menuItemWrapper}>
-                        <MenuItem
-                            title="Configuración"
-                            icon="⚙️"
-                            onPress={onSettings}
-                        />
-                    </View>
                 </View>
 
                 {/* ESPACIO FLEXIBLE */}

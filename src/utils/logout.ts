@@ -1,15 +1,12 @@
 
-import { authApi } from "../api/auth.api";
-import { storage } from "./storage";
+import { logout as logoutApi } from "../api/auth.api";
+import { clearTokens } from "./storage";
 
 export async function closeSession(): Promise<void> {
   try {
-    // Solicita al backend revocar el Access Token
-    // y eliminar el Refresh Token.
-    await authApi.logout();
+    await logoutApi();
   } finally {
-    // Limpia únicamente los tokens almacenados localmente.
-    // No elimina usuarios ni datos de SQLite.
-    await storage.clearAll();
+    await clearTokens();
   }
 }
+//Así se envía el refresh token al backend y después se limpian ambos tokens locales.

@@ -1,2 +1,7 @@
-export { useApi } from './useApi';
-export { useAuth } from './useAuth';
+/**
+ * Exportación centralizada de hooks
+ */
+
+export * from './useApi';
+export * from './useAuth';
+

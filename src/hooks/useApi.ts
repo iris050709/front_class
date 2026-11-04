@@ -1,5 +1,11 @@
-import { useState, useCallback } from 'react';
-import { ApiError } from '../types/errors';
+/**
+ * Hook personalizado para realizar peticiones HTTP.
+ * Maneja automáticamente estados de loading, error y data.
+ * Evita recrear execute en cada renderizado.
+ */
+
+import { useCallback, useRef, useState } from 'react';
+import { ApiError, handleApiError } from '../utils/errorHandler';
 
 interface UseApiState<T> {
   data: T | null;
@@ -7,31 +13,66 @@ interface UseApiState<T> {
   error: ApiError | null;
 }
 
-export const useApi = <T>() => {
+interface UseApiReturn<T> extends UseApiState<T> {
+  execute: (...args: any[]) => Promise<T | null>;
+  reset: () => void;
+}
+
+export function useApi<T>(
+  apiFunction: (...args: any[]) => Promise<T>
+): UseApiReturn<T> {
+
   const [state, setState] = useState<UseApiState<T>>({
     data: null,
     loading: false,
     error: null,
   });
 
-  const execute = useCallback(async (apiCall: () => Promise<T>): Promise<T | null> => {
-    setState({ data: null, loading: true, error: null });
-    
-    try {
-      const result = await apiCall();
-      setState({ data: result, loading: false, error: null });
-      return result;
-    } catch (error) {
-      const apiError = error instanceof ApiError 
-        ? error 
-        : new ApiError('UNKNOWN' as any, 'Error desconocido');
-      setState({ data: null, loading: false, error: apiError });
-      return null;
-    }
-  }, []);
+  // Mantener siempre la última función API.
+  const apiFunctionRef = useRef(apiFunction);
+  apiFunctionRef.current = apiFunction;
 
+  // Esta función permanece estable entre renderizados.
+  const execute = useCallback(
+    async (...args: any[]): Promise<T | null> => {
+      setState((prev) => ({
+        ...prev,
+        loading: true,
+        error: null,
+      }));
+
+      try {
+        const result = await apiFunctionRef.current(...args);
+
+        setState({
+          data: result,
+          loading: false,
+          error: null,
+        });
+
+        return result;
+      } catch (error) {
+        const apiError = handleApiError(error);
+
+        setState({
+          data: null,
+          loading: false,
+          error: apiError,
+        });
+
+        return null;
+      }
+    },
+    []
+  );
+
+  // Reiniciar estados.
   const reset = useCallback(() => {
-    setState({ data: null, loading: false, error: null });
+    setState({
+      data: null,
+      loading: false,
+      error: null,
+    });
   }, []);
 
   return {
@@ -39,4 +80,4 @@ export const useApi = <T>() => {
     execute,
     reset,
   };
-};
+}

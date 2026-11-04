@@ -1,3 +1,7 @@
-export * from './errors';
-export * from './auth';
+/**
+ * Exportación centralizada de tipos
+ */
+
 export * from './student';
+export * from './user';
+

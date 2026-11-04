@@ -1,36 +1,111 @@
-import React from 'react';
-import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
+/**
+ * Componente de indicador de carga
+ * Muestra un spinner mientras se cargan datos
+ */
+
+import { useEffect, useRef } from 'react';
+import { ActivityIndicator, Animated, StyleSheet, Text } from 'react-native';
 
 interface LoadingProps {
   message?: string;
-  fullScreen?: boolean;
+  size?: 'small' | 'large';
+  fullScreen?: boolean; //DECLARAR PROPIEDAD OPCIONAL fullScreen PARA USO EN LOGIN
 }
 
-export const Loading: React.FC<LoadingProps> = ({ 
-  message = 'Cargando...', 
-  fullScreen = false 
-}) => {
+export default function Loading({ message = 'Cargando...', size = 'large', fullScreen = false }: LoadingProps) {//agregar fullScreen como prop opcional con valor por defecto false
+  /**
+   * ERROR #10: Orden de Hooks
+   * 
+   * REGLA DE ORO:
+   * - React hooks DEBEN llamarse en el mismo orden en cada render
+   * - Orden correcto: useState/useRef primero, useEffect después
+   * 
+   * ❌ CÓDIGO INCORRECTO (ANTES):
+   * useEffect(() => { ... }, [fadeAnim]);  // ❌ Hook 1 - MAL ORDEN
+   * const fadeAnim = useRef(new Animated.Value(0)).current;  // ❌ Hook 2
+   * 
+   * PROBLEMA SI SE INVIERTE:
+   * - Error: "Rendered more hooks than during the previous render"
+   * - React mantiene un array interno de hooks, el orden es crítico
+   * 
+   * ✅ SOLUCIÓN:
+   * - Mantener orden correcto: useRef primero, useEffect después
+   */
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    /**
+     * ERROR #1: Memory Leak en Animaciones
+     * 
+     * ❌ CÓDIGO INCORRECTO (ANTES):
+     * useEffect(() => {
+     *   Animated.timing(fadeAnim, {
+     *     toValue: 1,
+     *     duration: 300,
+     *     useNativeDriver: true,
+     *   }).start();
+     * }, [fadeAnim]);
+     * 
+     * PROBLEMA:
+     * - Animated.timing() sin cleanup
+     * - Si usuario navega a otra pantalla mientras anima → memory leak
+     * - Warning: "Can't perform a React state update on an unmounted component"
+     * 
+     * ✅ SOLUCIÓN:
+     * - Guardar referencia de la animación
+     * - Retornar función cleanup que detiene la animación
+     */
+    const animation = Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 300,
+      /**
+       * ERROR #2: useNativeDriver Incorrecto
+       * 
+       * ❌ CÓDIGO INCORRECTO (ANTES):
+       * useNativeDriver: false
+       * 
+       * PROBLEMA:
+       * - useNativeDriver: false fuerza animación en hilo de JavaScript
+       * - La propiedad opacity SÍ soporta native driver
+       * - Causa lag en dispositivos antiguos o con muchas animaciones
+       * 
+       * ✅ SOLUCIÓN:
+       * - Usar useNativeDriver: true para animaciones fluidas
+       * - Se ejecuta en hilo nativo de UI (60fps garantizados)
+       */
+      useNativeDriver: true,
+    });
+
+    animation.start();
+
+    // CLEANUP: Detiene animación si componente se desmonta
+    return () => {
+      animation.stop();
+    };
+  }, [fadeAnim]);
+
   return (
-    <View style={[styles.container, fullScreen && styles.fullScreen]}>
-      <ActivityIndicator size="large" color="#007AFF" />
+    <Animated.View style={[styles.container, fullScreen && styles.fullScreen, { opacity: fadeAnim }]}>
+      <ActivityIndicator size={size} color="#3B82F6" />
       {message && <Text style={styles.message}>{message}</Text>}
-    </View>
+    </Animated.View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
-    padding: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  fullScreen: {
     flex: 1,
-    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
   },
   message: {
     marginTop: 12,
     fontSize: 16,
-    color: '#666',
+    color: '#6B7280',
+  },
+  fullScreen: {
+    flex: 1,
+    backgroundColor: '#fff',
   },
 });

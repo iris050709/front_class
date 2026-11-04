@@ -1,3 +1,8 @@
-export { apiClient } from './client';
-export { authApi } from './auth.api';
-export { studentsApi } from './students.api';
+/**
+ * Exportación centralizada de APIs
+ */
+
+export * from './auth.api';
+export { default as apiClient } from './client';
+export * from './students.api';
+

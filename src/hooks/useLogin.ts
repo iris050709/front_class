@@ -1,95 +1,71 @@
+
 import { useState } from "react";
 import { useDispatch } from "react-redux";
-import { setUser, setToken } from "../store/store";
-import { saveStorage } from "../utils/authStorage";
-
-const API_URL = "http://localhost:3000";
+import * as authApi from "../api/auth.api";
+import { AppDispatch, setToken, setUser } from "../store/store";
+import {
+    saveAccessToken,
+    saveRefreshToken,
+} from "../utils/storage";
 
 export const useLogin = () => {
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState("");
-    const dispatch = useDispatch();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-    const login = async (email: string, password: string): Promise<boolean> => {
-        setLoading(true);
-        setError("");
+  const dispatch = useDispatch<AppDispatch>();
 
-        try {
-            const response = await fetch(`${API_URL}/api/auth/login`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email, password }),
-            });
+  const login = async (
+    email: string,
+    password: string
+  ): Promise<boolean> => {
+    setLoading(true);
+    setError("");
 
-            const data = await response.json();
+    try {
+      const response = await authApi.login({
+        email,
+        password,
+      });
 
-            if (!response.ok) {
-                setError(data.error || data.message || "Credenciales inválidas");
-                return false;
-            }
+      if (!response.accessToken || !response.refreshToken) {
+        throw new Error("La API no devolvió los tokens necesarios");
+      }
 
-            // 🔑 Extraer accessToken proveniente del backend
-            const tokenReceived = data.accessToken || data.token;
+      await saveAccessToken(response.accessToken);
+      await saveRefreshToken(response.refreshToken);
 
-            if (!tokenReceived) {
-                setError("La API no devolvió un token válido");
-                return false;
-            }
+      dispatch(setToken(response.accessToken));
+      dispatch(setUser(response.user));
 
-            let fullUser = {
-                id: data.user?.id || 1,
-                email: data.user?.email || email,
-                nombre: "",
-                apellido: "",
-                matricula: "",
-            };
+      return true;
 
-            // Consulta a /api/students usando el accessToken para traer nombre y apellido
-            try {
-                const studentRes = await fetch(`${API_URL}/api/students`, {
-                    headers: { 
-                        "Accept": "application/json",
-                        "Authorization": `Bearer ${tokenReceived}` 
-                    },
-                });
+    } catch (err: any) {
+      console.error(
+        "Error de login:",
+        err.response?.data || err.message
+      );
 
-                if (studentRes.ok) {
-                    const studentData = await studentRes.json();
-                    const studentsList = Array.isArray(studentData) ? studentData : studentData.data;
+      setError(
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        err.message ||
+        "No se pudo iniciar sesión"
+      );
 
-                    if (Array.isArray(studentsList)) {
-                        const match = studentsList.find(
-                            (s: any) => s.email.toLowerCase() === email.toLowerCase()
-                        );
-                        if (match) {
-                            fullUser.nombre = match.nombre;
-                            fullUser.apellido = match.apellido;
-                            fullUser.matricula = match.matricula;
-                        }
-                    }
-                }
-            } catch (err) {
-                console.log("No se pudo obtener la lista de estudiantes:", err);
-            }
+      return false;
 
-            // Guardar en localStorage / SecureStore
-            await saveStorage("user_token", tokenReceived);
-            await saveStorage("user_info", JSON.stringify(fullUser));
+    } finally {
+      setLoading(false);
+    }
+  };
 
-            // Actualizar Redux
-            dispatch(setToken(tokenReceived));
-            dispatch(setUser(fullUser));
-
-            return true;
-
-        } catch (err) {
-            console.error("Error durante el inicio de sesión:", err);
-            setError("No se pudo conectar con el servidor");
-            return false;
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    return { login, loading, error };
+  return {
+    login,
+    loading,
+    error,
+  };
 };
+/**
+ * Se elimina la petición adicional a /api/students, porque el backend ya devuelve nombre, apellido y matrícula cuando inicia sesión un estudiante.
+ * Con esto, el usuario que devuelve el backend se almacena directamente en Redux.
+ */
