@@ -41,7 +41,8 @@ export default function SearchBar({
         clearTimeout(debounceTimer.current);
       }
     };
-  }, [localValue, debounceMs]);
+  }, [localValue, debounceMs, onChangeText]);
+    //Se agrega onChangeText porque es una función que utilizas dentro del useEffect, pero no está incluida en su arreglo de dependencias.
 
   const handleClear = () => {
     setLocalValue('');

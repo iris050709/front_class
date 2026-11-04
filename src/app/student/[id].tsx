@@ -1,7 +1,7 @@
 
 /**
  * Pantalla de detalle de estudiante
- * Compatible con Web, Android e iOS.
+ * Diseño profesional compatible con Web, Android e iOS.
  */
 
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
@@ -15,19 +15,31 @@ import {
   View,
 } from 'react-native';
 
-import { deleteStudent, getStudentById } from '../../api/students.api';
+import {
+  deleteStudent,
+  getStudentById,
+  updateStudent,
+} from '../../api/students.api';
+
 import { ErrorMessage, Loading } from '../../components';
+import StudentForm from '../../components/StudentForm';
 import { useApi } from '../../hooks/useApi';
+import { useAuth } from '../../hooks/useAuth';
+import type { Student } from '../../types/student';
 
 export default function StudentDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { user } = useAuth();
 
+  const isAdmin = user?.kind === 'user';
+
+  const [editModalVisible, setEditModalVisible] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
 
-  // Mantener estable la función que consulta al estudiante.
+  // Consultar estudiante.
   const fetchStudent = useCallback(() => {
     return getStudentById(Number(id));
   }, [id]);
@@ -39,18 +51,41 @@ export default function StudentDetailScreen() {
     execute: loadStudent,
   } = useApi(fetchStudent);
 
-  // Cargar estudiante cuando cambie su identificador.
+  // Actualizar estudiante.
+  const handleEditStudent = async (
+    data: Omit<Student, 'id' | 'created_at' | 'updated_at'> & {
+      password?: string;
+    }
+  ) => {
+    if (!isAdmin) {
+      throw new Error('No tienes permisos para editar estudiantes.');
+    }
+
+    const studentId = Number(id);
+
+    if (!Number.isInteger(studentId) || studentId <= 0) {
+      throw new Error('El identificador del estudiante no es válido.');
+    }
+
+    await updateStudent(studentId, data);
+
+    setEditModalVisible(false);
+
+    await loadStudent();
+  };
+
+  // Cargar información.
   useEffect(() => {
     loadStudent();
   }, [id, loadStudent]);
 
-  // Abrir confirmación.
+  // Abrir confirmación de eliminación.
   const openDeleteModal = () => {
     setDeleteError('');
     setModalVisible(true);
   };
 
-  // Ejecutar eliminación.
+  // Eliminar estudiante.
   const handleDelete = async () => {
     const studentId = Number(id);
 
@@ -67,7 +102,7 @@ export default function StudentDetailScreen() {
       await deleteStudent(studentId);
 
       setModalVisible(false);
-      router.replace("/(tabs)/students");
+      router.replace('/(tabs)/students');
 
     } catch (err: any) {
       console.error('Error al eliminar estudiante:', err);
@@ -98,113 +133,283 @@ export default function StudentDetailScreen() {
     );
   }
 
+  const initials =
+    `${student.nombre?.charAt(0) || '?'}${student.apellido?.charAt(0) || '?'}`;
+
+  const formatDate = (date: string) => {
+    const parsedDate = new Date(date);
+
+    if (Number.isNaN(parsedDate.getTime())) {
+      return 'Fecha no disponible';
+    }
+
+    return parsedDate.toLocaleDateString('es-MX', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
+  };
+
   return (
     <View style={styles.container}>
       <Stack.Screen
         options={{
-          title: `${student.nombre} ${student.apellido}`,
+          title: 'Detalle del estudiante',
         }}
       />
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Información principal */}
-        <View style={styles.header}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {student.nombre?.charAt(0) || '?'}
-              {student.apellido?.charAt(0) || '?'}
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.content}>
+
+          {/* ENCABEZADO PRINCIPAL */}
+          <View style={styles.header}>
+            <View style={styles.headerDecoration} />
+
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>
+                {initials.toUpperCase()}
+              </Text>
+            </View>
+
+            <Text style={styles.headerSubtitle}>
+              PERFIL DEL ESTUDIANTE
             </Text>
-          </View>
 
-          <Text style={styles.name}>
-            {student.nombre} {student.apellido}
-          </Text>
+            <Text style={styles.name}>
+              {student.nombre} {student.apellido}
+            </Text>
 
-          <Text style={styles.matricula}>
-            Matrícula: {student.matricula}
-          </Text>
-        </View>
-
-        {/* Información de contacto */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            Información de contacto
-          </Text>
-
-          <View style={styles.infoRow}>
-            <Text style={styles.icon}>📧</Text>
-            <View style={styles.infoContent}>
-              <Text style={styles.label}>Email</Text>
-              <Text style={styles.value}>{student.email}</Text>
-            </View>
-          </View>
-
-          <View style={styles.infoRow}>
-            <Text style={styles.icon}>🆔</Text>
-            <View style={styles.infoContent}>
-              <Text style={styles.label}>ID</Text>
-              <Text style={styles.value}>{student.id}</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Fechas */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Fechas</Text>
-
-          <View style={styles.infoRow}>
-            <Text style={styles.icon}>📅</Text>
-            <View style={styles.infoContent}>
-              <Text style={styles.label}>Creado</Text>
-              <Text style={styles.value}>
-                {new Date(student.created_at).toLocaleDateString('es-MX', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                })}
+            <View style={styles.matriculaBadge}>
+              <Text style={styles.matriculaLabel}>
+                MATRÍCULA
+              </Text>
+              <Text style={styles.matriculaValue}>
+                {student.matricula}
               </Text>
             </View>
           </View>
 
-          <View style={styles.infoRow}>
-            <Text style={styles.icon}>🔄</Text>
-            <View style={styles.infoContent}>
-              <Text style={styles.label}>Actualizado</Text>
-              <Text style={styles.value}>
-                {new Date(student.updated_at).toLocaleDateString('es-MX', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                })}
-              </Text>
+          {/* INFORMACIÓN PERSONAL */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionIcon}>
+                <Text style={styles.sectionIconText}>👤</Text>
+              </View>
+
+              <View>
+                <Text style={styles.sectionTitle}>
+                  Información personal
+                </Text>
+                <Text style={styles.sectionSubtitle}>
+                  Datos generales del estudiante
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.divider} />
+
+            <View style={styles.infoRow}>
+              <View style={styles.infoIcon}>
+                <Text>📧</Text>
+              </View>
+
+              <View style={styles.infoContent}>
+                <Text style={styles.label}>Correo electrónico</Text>
+                <Text style={styles.value}>
+                  {student.email}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.infoRow}>
+              <View style={styles.infoIcon}>
+                <Text>🆔</Text>
+              </View>
+
+              <View style={styles.infoContent}>
+                <Text style={styles.label}>Identificador</Text>
+                <Text style={styles.value}>
+                  #{student.id}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.infoRow}>
+              <View style={styles.infoIcon}>
+                <Text>🎓</Text>
+              </View>
+
+              <View style={styles.infoContent}>
+                <Text style={styles.label}>Matrícula</Text>
+                <Text style={styles.value}>
+                  {student.matricula}
+                </Text>
+              </View>
             </View>
           </View>
-        </View>
 
-        {/* Botón eliminar */}
-        <View style={styles.actions}>
-          <Pressable
-            style={({ pressed }) => [
-              styles.deleteButton,
-              pressed && styles.buttonPressed,
-            ]}
-            onPress={openDeleteModal}
-            disabled={deleting}
-          >
-            <Text style={styles.deleteButtonText}>
-              🗑️ Eliminar estudiante
-            </Text>
-          </Pressable>
+          {/* INFORMACIÓN DE REGISTRO */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionIcon}>
+                <Text style={styles.sectionIconText}>📅</Text>
+              </View>
 
-          {deleteError !== '' && (
-            <Text style={styles.errorText}>
-              {deleteError}
+              <View>
+                <Text style={styles.sectionTitle}>
+                  Información de registro
+                </Text>
+                <Text style={styles.sectionSubtitle}>
+                  Historial de actividad del estudiante
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.divider} />
+
+            <View style={styles.dateRow}>
+              <View style={styles.dateIndicator}>
+                <Text style={styles.dateEmoji}>🗓️</Text>
+              </View>
+
+              <View style={styles.dateContent}>
+                <Text style={styles.label}>
+                  Fecha de creación
+                </Text>
+                <Text style={styles.value}>
+                  {formatDate(student.created_at)}
+                </Text>
+              </View>
+
+              <View style={styles.statusBadge}>
+                <Text style={styles.statusText}>
+                  Registro
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.dateRow}>
+              <View style={styles.dateIndicatorUpdated}>
+                <Text style={styles.dateEmoji}>🔄</Text>
+              </View>
+
+              <View style={styles.dateContent}>
+                <Text style={styles.label}>
+                  Última actualización
+                </Text>
+                <Text style={styles.value}>
+                  {formatDate(student.updated_at)}
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          {/* ACCIONES */}
+          <View style={styles.actionsSection}>
+            <Text style={styles.actionsTitle}>
+              Administración
             </Text>
-          )}
+
+            <Text style={styles.actionsSubtitle}>
+              Gestiona la información de este estudiante
+            </Text>
+
+            {isAdmin && (
+              <Pressable
+                style={({ pressed }) => [
+                  styles.editButton,
+                  pressed && styles.buttonPressed,
+                ]}
+                onPress={() => setEditModalVisible(true)}
+              >
+                <Text style={styles.buttonIcon}>✏️</Text>
+                <Text style={styles.editButtonText}>
+                  Editar estudiante
+                </Text>
+                <Text style={styles.buttonArrow}>›</Text>
+              </Pressable>
+            )}
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.deleteButton,
+                pressed && styles.buttonPressed,
+              ]}
+              onPress={openDeleteModal}
+              disabled={deleting}
+            >
+              <Text style={styles.buttonIcon}>🗑️</Text>
+              <Text style={styles.deleteButtonText}>
+                Eliminar estudiante
+              </Text>
+              <Text style={styles.buttonArrow}>›</Text>
+            </Pressable>
+
+            {deleteError !== '' && (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>
+                  {deleteError}
+                </Text>
+              </View>
+            )}
+          </View>
+
+          <Text style={styles.footerText}>
+            Sistema de gestión de estudiantes
+          </Text>
+
         </View>
       </ScrollView>
 
-      {/* Modal de confirmación */}
+      {/* MODAL DE EDICIÓN */}
+      <Modal
+        visible={editModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setEditModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.editModalContainer}>
+
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={styles.modalTitle}>
+                  Editar estudiante
+                </Text>
+                <Text style={styles.modalSubtitle}>
+                  Actualiza la información del estudiante
+                </Text>
+              </View>
+
+              <Pressable
+                style={styles.closeButton}
+                onPress={() => setEditModalVisible(false)}
+              >
+                <Text style={styles.closeButtonText}>✕</Text>
+              </Pressable>
+            </View>
+
+            <View style={styles.divider} />
+
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
+              <StudentForm
+                student={student}
+                onCancel={() => setEditModalVisible(false)}
+                onSubmit={handleEditStudent}
+              />
+            </ScrollView>
+
+          </View>
+        </View>
+      </Modal>
+
+      {/* MODAL DE CONFIRMACIÓN */}
       <Modal
         visible={modalVisible}
         transparent
@@ -216,19 +421,35 @@ export default function StudentDetailScreen() {
         }}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>
+          <View style={styles.confirmModal}>
+
+            <View style={styles.warningIcon}>
+              <Text style={styles.warningIconText}>!</Text>
+            </View>
+
+            <Text style={styles.confirmTitle}>
               Eliminar estudiante
             </Text>
 
-            <Text style={styles.modalMessage}>
-              ¿Estás seguro de que deseas eliminar a{' '}
-              {student.nombre} {student.apellido}?
+            <Text style={styles.confirmMessage}>
+              ¿Estás seguro de que deseas eliminar a
+              {' '}
+              <Text style={styles.confirmStudentName}>
+                {student.nombre} {student.apellido}
+              </Text>
+              ?
+            </Text>
+
+            <Text style={styles.confirmNote}>
+              Esta acción eliminará el registro del estudiante.
             </Text>
 
             <View style={styles.modalButtons}>
               <Pressable
-                style={[styles.modalButton, styles.cancelButton]}
+                style={({ pressed }) => [
+                  styles.cancelButton,
+                  pressed && styles.buttonPressed,
+                ]}
                 onPress={() => setModalVisible(false)}
                 disabled={deleting}
               >
@@ -238,19 +459,20 @@ export default function StudentDetailScreen() {
               </Pressable>
 
               <Pressable
-                style={[
-                  styles.modalButton,
+                style={({ pressed }) => [
                   styles.confirmButton,
                   deleting && styles.disabledButton,
+                  pressed && styles.buttonPressed,
                 ]}
                 onPress={handleDelete}
                 disabled={deleting}
               >
                 <Text style={styles.confirmButtonText}>
-                  {deleting ? 'Eliminando...' : 'Eliminar'}
+                  {deleting ? 'Eliminando...' : 'Sí, eliminar'}
                 </Text>
               </Pressable>
             </View>
+
           </View>
         </View>
       </Modal>
@@ -259,154 +481,495 @@ export default function StudentDetailScreen() {
 }
 
 const styles = StyleSheet.create({
+
+  // CONTENEDOR GENERAL
   container: {
     flex: 1,
-    backgroundColor: '#F5F7FA',
+    backgroundColor: '#F1F5F9',
   },
+
   scrollContent: {
-    paddingBottom: 30,
+    paddingHorizontal: 16,
+    paddingTop: 24,
+    paddingBottom: 40,
   },
+
+  content: {
+    width: '100%',
+    maxWidth: 850,
+    alignSelf: 'center',
+  },
+
+  // ENCABEZADO
   header: {
-    backgroundColor: '#FFFFFF',
-    padding: 24,
+    backgroundColor: '#172554',
+    borderRadius: 20,
+    paddingVertical: 32,
+    paddingHorizontal: 20,
     alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    overflow: 'hidden',
+    marginBottom: 20,
+    elevation: 4,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
   },
+
+  headerDecoration: {
+    position: 'absolute',
+    width: 230,
+    height: 230,
+    borderRadius: 115,
+    backgroundColor: '#1E40AF',
+    opacity: 0.35,
+    top: -140,
+    right: -70,
+  },
+
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#3B82F6',
+    width: 92,
+    height: 92,
+    borderRadius: 46,
+    backgroundColor: '#DBEAFE',
+    borderWidth: 4,
+    borderColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
   },
+
   avatarText: {
-    color: '#FFFFFF',
-    fontSize: 32,
-    fontWeight: 'bold',
+    fontSize: 30,
+    fontWeight: '800',
+    color: '#1D4ED8',
   },
-  name: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#111827',
+
+  headerSubtitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 2,
+    color: '#BFDBFE',
     marginBottom: 8,
   },
-  matricula: {
-    fontSize: 16,
-    color: '#6B7280',
+
+  name: {
+    fontSize: 25,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    textAlign: 'center',
+    marginBottom: 18,
   },
+
+  matriculaBadge: {
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 12,
+    paddingHorizontal: 22,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+
+  matriculaLabel: {
+    color: '#BFDBFE',
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1.5,
+    marginBottom: 4,
+  },
+
+  matriculaValue: {
+    color: '#FFFFFF',
+    fontSize: 17,
+    fontWeight: '700',
+  },
+
+  // TARJETAS DE INFORMACIÓN
   section: {
     backgroundColor: '#FFFFFF',
-    marginTop: 16,
-    padding: 16,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 18,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    elevation: 2,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 5,
   },
+
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 18,
+    gap: 12,
+  },
+
+  sectionIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#EFF6FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  sectionIconText: {
+    fontSize: 20,
+  },
+
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 16,
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#0F172A',
+    marginBottom: 3,
   },
+
+  sectionSubtitle: {
+    fontSize: 12,
+    color: '#64748B',
+  },
+
+  divider: {
+    height: 1,
+    backgroundColor: '#E2E8F0',
+    marginBottom: 8,
+  },
+
+  // FILAS DE INFORMACIÓN
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: '#F1F5F9',
+    gap: 13,
   },
-  icon: {
-    fontSize: 24,
-    marginRight: 12,
+
+  infoIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 11,
+    backgroundColor: '#F8FAFC',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
+
   infoContent: {
     flex: 1,
   },
+
   label: {
     fontSize: 12,
-    color: '#6B7280',
-    marginBottom: 4,
+    color: '#64748B',
+    fontWeight: '500',
+    marginBottom: 5,
   },
+
   value: {
-    fontSize: 16,
-    color: '#111827',
-  },
-  actions: {
-    padding: 20,
-    alignItems: 'center',
-  },
-  deleteButton: {
-    backgroundColor: '#DC2626',
-    paddingVertical: 14,
-    paddingHorizontal: 22,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  deleteButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 15,
+    color: '#1E293B',
     fontWeight: '600',
   },
-  buttonPressed: {
-    opacity: 0.7,
+
+  // FECHAS
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 15,
+    gap: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
   },
-  errorText: {
-    color: '#DC2626',
-    marginTop: 12,
-    textAlign: 'center',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+
+  dateIndicator: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: '#EFF6FF',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+
+  dateIndicatorUpdated: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: '#F0FDF4',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  dateEmoji: {
+    fontSize: 19,
+  },
+
+  dateContent: {
+    flex: 1,
+  },
+
+  statusBadge: {
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 7,
+  },
+
+  statusText: {
+    color: '#2563EB',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+
+  // ACCIONES
+  actionsSection: {
+    backgroundColor: '#FFFFFF',
+    padding: 20,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginBottom: 20,
+  },
+
+  actionsTitle: {
+    fontSize: 18,
+    color: '#0F172A',
+    fontWeight: '800',
+    marginBottom: 5,
+  },
+
+  actionsSubtitle: {
+    fontSize: 13,
+    color: '#64748B',
+    marginBottom: 20,
+  },
+
+  editButton: {
+    width: '100%',
+    minHeight: 54,
+    backgroundColor: '#2563EB',
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 18,
+    marginBottom: 12,
+    elevation: 2,
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 5,
+  },
+
+  deleteButton: {
+    width: '100%',
+    minHeight: 54,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 18,
+  },
+
+  buttonIcon: {
+    fontSize: 19,
+    marginRight: 12,
+  },
+
+  editButtonText: {
+    flex: 1,
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+
+  deleteButtonText: {
+    flex: 1,
+    color: '#DC2626',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+
+  buttonArrow: {
+    fontSize: 27,
+    color: '#FFFFFF',
+    fontWeight: '300',
+  },
+
+  buttonPressed: {
+    opacity: 0.75,
+    transform: [{ scale: 0.99 }],
+  },
+
+  errorContainer: {
+    backgroundColor: '#FEF2F2',
+    padding: 12,
+    borderRadius: 10,
+    marginTop: 15,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+
+  errorText: {
+    color: '#B91C1C',
+    fontSize: 13,
+    textAlign: 'center',
+  },
+
+  footerText: {
+    textAlign: 'center',
+    color: '#94A3B8',
+    fontSize: 12,
+    marginTop: 5,
+  },
+
+  // MODALES
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15,23,42,0.65)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+
+  editModalContainer: {
+    width: '100%',
+    maxWidth: 480,
+    maxHeight: '90%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
     padding: 20,
   },
-  modalContainer: {
+
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+
+  modalTitle: {
+    fontSize: 21,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 5,
+  },
+
+  modalSubtitle: {
+    fontSize: 12,
+    color: '#64748B',
+  },
+
+  closeButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: '#F1F5F9',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  closeButtonText: {
+    fontSize: 17,
+    color: '#475569',
+    fontWeight: '700',
+  },
+
+  // CONFIRMACIÓN
+  confirmModal: {
     width: '100%',
     maxWidth: 400,
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 24,
+    borderRadius: 20,
+    padding: 25,
+    alignItems: 'center',
   },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#111827',
+
+  warningIcon: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 17,
+  },
+
+  warningIconText: {
+    fontSize: 29,
+    color: '#DC2626',
+    fontWeight: '800',
+  },
+
+  confirmTitle: {
+    fontSize: 21,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+
+  confirmMessage: {
+    fontSize: 14,
+    color: '#475569',
+    lineHeight: 22,
+    textAlign: 'center',
     marginBottom: 12,
   },
-  modalMessage: {
-    fontSize: 15,
-    color: '#4B5563',
-    lineHeight: 22,
+
+  confirmStudentName: {
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+
+  confirmNote: {
+    fontSize: 12,
+    color: '#94A3B8',
+    textAlign: 'center',
     marginBottom: 24,
   },
+
   modalButtons: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    width: '100%',
     gap: 10,
   },
-  modalButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
+
+  cancelButton: {
+    flex: 1,
+    backgroundColor: '#F1F5F9',
+    paddingVertical: 13,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  cancelButton: {
-    backgroundColor: '#E5E7EB',
-  },
+
   cancelButtonText: {
-    color: '#374151',
-    fontWeight: '600',
+    color: '#475569',
+    fontWeight: '700',
+    fontSize: 14,
   },
+
   confirmButton: {
+    flex: 1,
     backgroundColor: '#DC2626',
+    paddingVertical: 13,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
+
   confirmButtonText: {
     color: '#FFFFFF',
-    fontWeight: '600',
+    fontWeight: '700',
+    fontSize: 14,
   },
+
   disabledButton: {
     opacity: 0.5,
   },

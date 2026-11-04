@@ -13,13 +13,13 @@ export default function LoginForm({
 
     useEffect(() => {
         return () => {
-            mountedRef.current = false;
+            mountedRef.current = false; // nunca se consulta mountedRef, se puede eliminar
         };
     }, []);
 
     const handleLogin = async () => {
-        onLogin(email, password);
-    };
+        await onLogin(email, password);
+    }; //Ahora LoginForm espera a que termine la promesa de onLogin. Por eso, utilizar await en LoginForm permite esperar también a que termine ese proceso.
 
     return (
         <View style={styles.container}>

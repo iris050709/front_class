@@ -31,6 +31,20 @@ export default function Loading({ message = 'Cargando...', size = 'large', fullS
    * ✅ SOLUCIÓN:
    * - Mantener orden correcto: useRef primero, useEffect después
    */
+  /**
+   * ERROR #8: Orden incorrecto de Hooks
+   *
+   * ANTES (INCORRECTO):
+   * useEffect(() => { ... }, [fadeAnim]);
+   * const fadeAnim = useRef(new Animated.Value(0)).current;
+   *
+   * PROBLEMA:
+   * - Se utilizaba fadeAnim antes de declararlo.
+   * - Los Hooks deben conservar el mismo orden en cada renderizado.
+   *
+   * SOLUCIÓN:
+   * - Declarar useRef antes de useEffect.
+   */
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -73,11 +87,28 @@ export default function Loading({ message = 'Cargando...', size = 'large', fullS
        * - Usar useNativeDriver: true para animaciones fluidas
        * - Se ejecuta en hilo nativo de UI (60fps garantizados)
        */
+
+      /**
+       * ERROR #10: Uso incorrecto de useNativeDriver
+       *
+       * ANTES (INCORRECTO):
+       * useNativeDriver: false
+       *
+       * PROBLEMA:
+       * - La animación se ejecutaba en el hilo de JavaScript.
+       * - Podía generar trabajo adicional en ese hilo.
+       *
+       * SOLUCIÓN:
+       * - Utilizar useNativeDriver: true.
+       * - La propiedad opacity es compatible con el controlador nativo.
+       */
+
       useNativeDriver: true,
     });
 
     animation.start();
 
+    // ERROR #9 SOLUCIONADO: Se detiene la animación al desmontar el componente.
     // CLEANUP: Detiene animación si componente se desmonta
     return () => {
       animation.stop();

@@ -6,6 +6,13 @@
 import { Student, StudentListResponse } from '../types/student';
 import apiClient from './client';
 
+export type UpdateStudentData = Omit<
+  Student,
+  'id' | 'created_at' | 'updated_at'
+> & {
+  password?: string;
+};
+
 /**
  * Obtiene la lista de todos los estudiantes
  * Requiere autenticación (token JWT)
@@ -42,12 +49,20 @@ export async function createStudent(
 }
 
 /**
- * Actualiza un estudiante existente
+ * Actualiza un estudiante existente.
+ * Requiere permisos de administrador.
  * @param id - ID del estudiante
  * @param student - Datos actualizados
  */
-export async function updateStudent(id: number, student: Partial<Student>): Promise<Student> {
-  const response = await apiClient.put<{ data: Student }>(`/api/students/${id}`, student);
+export async function updateStudent(
+  id: number,
+  student: UpdateStudentData
+): Promise<Student> {
+  const response = await apiClient.put<{ data: Student }>(
+    `/api/students/${id}`,
+    student
+  );
+
   return response.data.data;
 }
 

@@ -1,8 +1,8 @@
 
 /**
- * Pantalla de perfil del usuario
+ * Pantalla de perfil del usuario.
  * Muestra información de cuenta, acciones y cierre de sesión.
- * Los modales funcionan en Web y dispositivos móviles.
+ * Compatible con Web, Android e iOS.
  */
 
 import { useState } from 'react';
@@ -13,7 +13,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from 'react-native';
 
@@ -23,14 +22,14 @@ import { useAuth } from '../../hooks/useAuth';
 export default function ProfileScreen() {
   const { user, loading, logout, isAuthenticated } = useAuth();
 
-  // Estados del modal
+  // Estados del modal.
   const [modalVisible, setModalVisible] = useState(false);
   const [modalTitle, setModalTitle] = useState('');
   const [modalMessage, setModalMessage] = useState('');
   const [modalType, setModalType] = useState<'info' | 'confirm'>('info');
   const [loggingOut, setLoggingOut] = useState(false);
 
-  // Mostrar información en un modal
+  // Mostrar información en un modal.
   const showInfo = (title: string, message: string) => {
     setModalTitle(title);
     setModalMessage(message);
@@ -38,27 +37,37 @@ export default function ProfileScreen() {
     setModalVisible(true);
   };
 
-  // Mostrar indicador mientras se verifica la autenticación
+  // Mostrar indicador mientras se verifica la autenticación.
   if (loading) {
     return <Loading message="Cargando perfil..." />;
   }
 
-  // Si no hay sesión activa
+  // Si no hay sesión activa.
   if (!isAuthenticated || !user) {
     return (
       <View style={styles.container}>
-        <Text style={styles.errorText}>
-          No hay sesión activa
-        </Text>
+        <View style={styles.noSessionCard}>
+          <Text style={styles.noSessionIcon}>🔒</Text>
+          <Text style={styles.noSessionTitle}>
+            Sesión no disponible
+          </Text>
+          <Text style={styles.noSessionText}>
+            No hay una sesión activa. Inicia sesión para consultar tu perfil.
+          </Text>
+        </View>
       </View>
     );
   }
 
-  // Datos del usuario
+  // Datos del usuario.
   const email = user.email ?? '';
-  const firstLetter = email.charAt(0).toUpperCase() || 'U';
+  const fullName =
+    `${user.nombre ?? ''} ${user.apellido ?? ''}`.trim();
 
-  // Acción: Configuración
+  const displayName = fullName || email || 'Usuario';
+  const firstLetter = displayName.charAt(0).toUpperCase() || 'U';
+
+  // Acciones del menú.
   const handleSettings = () => {
     showInfo(
       'Configuración',
@@ -66,7 +75,6 @@ export default function ProfileScreen() {
     );
   };
 
-  // Acción: Notificaciones
   const handleNotifications = () => {
     showInfo(
       'Notificaciones',
@@ -74,7 +82,6 @@ export default function ProfileScreen() {
     );
   };
 
-  // Acción: Ayuda
   const handleHelp = () => {
     showInfo(
       'Ayuda',
@@ -82,17 +89,17 @@ export default function ProfileScreen() {
     );
   };
 
-  // Solicitar confirmación para cerrar sesión
+  // Solicitar confirmación para cerrar sesión.
   const handleLogout = () => {
     setModalTitle('Cerrar sesión');
     setModalMessage(
-      '¿Estás seguro que deseas cerrar sesión?'
+      '¿Estás seguro de que deseas cerrar tu sesión?'
     );
     setModalType('confirm');
     setModalVisible(true);
   };
 
-  // Ejecutar cierre de sesión
+  // Ejecutar cierre de sesión.
   const confirmLogout = async () => {
     if (loggingOut) return;
 
@@ -117,144 +124,231 @@ export default function ProfileScreen() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        {/* TARJETA DE PERFIL */}
-        <View style={styles.profileCard}>
-          <View style={styles.avatarContainer}>
-            <Text style={styles.avatar}>
-              {firstLetter}
+        <View style={styles.innerContent}>
+
+          {/* ENCABEZADO DEL PERFIL */}
+          <View style={styles.profileCard}>
+            <View style={styles.profileTop}>
+              <View style={styles.avatarContainer}>
+                <Text style={styles.avatar}>
+                  {firstLetter}
+                </Text>
+              </View>
+
+              <View style={styles.profileText}>
+                <Text style={styles.profileEyebrow}>
+                  MI CUENTA
+                </Text>
+
+                <Text style={styles.profileName}>
+                  {displayName}
+                </Text>
+
+                <Text style={styles.profileEmail}>
+                  {email || 'Correo no disponible'}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.profileDivider} />
+
+            <View style={styles.statusContainer}>
+              <View style={styles.statusDot} />
+              <Text style={styles.statusText}>
+                Cuenta activa
+              </Text>
+            </View>
+          </View>
+
+          {/* INFORMACIÓN DE CUENTA */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionEyebrow}>
+                DATOS PERSONALES
+              </Text>
+
+              <Text style={styles.sectionTitle}>
+                Información de cuenta
+              </Text>
+            </View>
+
+            <View style={styles.infoCard}>
+              <View style={styles.infoRow}>
+                <View style={styles.infoIconContainer}>
+                  <Text style={styles.infoIcon}>🆔</Text>
+                </View>
+
+                <View style={styles.infoContent}>
+                  <Text style={styles.label}>
+                    ID de usuario
+                  </Text>
+
+                  <Text style={styles.value}>
+                    {user.id ?? 'No disponible'}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.infoDivider} />
+
+              <View style={styles.infoRow}>
+                <View style={styles.infoIconContainer}>
+                  <Text style={styles.infoIcon}>✉️</Text>
+                </View>
+
+                <View style={styles.infoContent}>
+                  <Text style={styles.label}>
+                    Correo electrónico
+                  </Text>
+
+                  <Text style={styles.value}>
+                    {email || 'No disponible'}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.infoDivider} />
+
+              <View style={styles.infoRow}>
+                <View style={styles.infoIconContainer}>
+                  <Text style={styles.infoIcon}>🛡️</Text>
+                </View>
+
+                <View style={styles.infoContent}>
+                  <Text style={styles.label}>
+                    Estado de cuenta
+                  </Text>
+
+                  <Text style={[styles.value, styles.activeStatus]}>
+                    Activo
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </View>
+
+          {/* ACCIONES */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionEyebrow}>
+                PREFERENCIAS
+              </Text>
+
+              <Text style={styles.sectionTitle}>
+                Acciones
+              </Text>
+
+              <Text style={styles.sectionSubtitle}>
+                Administra las opciones de tu cuenta.
+              </Text>
+            </View>
+
+            {/* CONFIGURACIÓN */}
+            <Pressable
+              style={({ pressed }) => [
+                styles.menuItem,
+                pressed && styles.menuItemPressed,
+              ]}
+              onPress={handleSettings}
+            >
+              <View style={[styles.menuIconContainer, styles.blueIcon]}>
+                <Text style={styles.menuIcon}>⚙️</Text>
+              </View>
+
+              <View style={styles.menuContent}>
+                <Text style={styles.menuText}>
+                  Configuración
+                </Text>
+
+                <Text style={styles.menuDescription}>
+                  Opciones generales de tu cuenta.
+                </Text>
+              </View>
+
+              <Text style={styles.menuArrow}>›</Text>
+            </Pressable>
+
+            {/* NOTIFICACIONES */}
+            <Pressable
+              style={({ pressed }) => [
+                styles.menuItem,
+                pressed && styles.menuItemPressed,
+              ]}
+              onPress={handleNotifications}
+            >
+              <View style={[styles.menuIconContainer, styles.orangeIcon]}>
+                <Text style={styles.menuIcon}>🔔</Text>
+              </View>
+
+              <View style={styles.menuContent}>
+                <Text style={styles.menuText}>
+                  Notificaciones
+                </Text>
+
+                <Text style={styles.menuDescription}>
+                  Preferencias de notificaciones.
+                </Text>
+              </View>
+
+              <Text style={styles.menuArrow}>›</Text>
+            </Pressable>
+
+            {/* AYUDA */}
+            <Pressable
+              style={({ pressed }) => [
+                styles.menuItem,
+                pressed && styles.menuItemPressed,
+              ]}
+              onPress={handleHelp}
+            >
+              <View style={[styles.menuIconContainer, styles.purpleIcon]}>
+                <Text style={styles.menuIcon}>❓</Text>
+              </View>
+
+              <View style={styles.menuContent}>
+                <Text style={styles.menuText}>
+                  Ayuda
+                </Text>
+
+                <Text style={styles.menuDescription}>
+                  Información y asistencia.
+                </Text>
+              </View>
+
+              <Text style={styles.menuArrow}>›</Text>
+            </Pressable>
+          </View>
+
+          {/* CERRAR SESIÓN */}
+          <View style={styles.logoutSection}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.logoutButton,
+                pressed && styles.logoutButtonPressed,
+                loggingOut && styles.logoutButtonDisabled,
+              ]}
+              onPress={handleLogout}
+              disabled={loggingOut}
+            >
+              <Text style={styles.logoutIcon}>↪</Text>
+
+              <Text style={styles.logoutText}>
+                {loggingOut ? 'Cerrando sesión...' : 'Cerrar sesión'}
+              </Text>
+            </Pressable>
+
+            <Text style={styles.footerText}>
+              Sistema de gestión de estudiantes
             </Text>
           </View>
 
-          <Text style={styles.title}>
-            Mi Perfil
-          </Text>
-
-          <Text style={styles.email}>
-            {email}
-          </Text>
         </View>
-
-        {/* INFORMACIÓN DE CUENTA */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            Información de cuenta
-          </Text>
-
-          <View style={styles.infoRow}>
-            <Text style={styles.label}>
-              ID de usuario:
-            </Text>
-
-            <Text style={styles.value}>
-              {user.id ?? 'No disponible'}
-            </Text>
-          </View>
-
-          <View style={styles.infoRow}>
-            <Text style={styles.label}>
-              Email:
-            </Text>
-
-            <Text style={styles.value}>
-              {email || 'No disponible'}
-            </Text>
-          </View>
-
-          <View style={styles.infoRow}>
-            <Text style={styles.label}>
-              Estado:
-            </Text>
-
-            <Text style={[styles.value, styles.activeStatus]}>
-              Activo
-            </Text>
-          </View>
-        </View>
-
-        {/* ACCIONES */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            Acciones
-          </Text>
-
-          {/* CONFIGURACIÓN */}
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={handleSettings}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.menuIcon}>
-              ⚙️
-            </Text>
-
-            <Text style={styles.menuText}>
-              Configuración
-            </Text>
-
-            <Text style={styles.menuArrow}>
-              ›
-            </Text>
-          </TouchableOpacity>
-
-          {/* NOTIFICACIONES */}
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={handleNotifications}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.menuIcon}>
-              🔔
-            </Text>
-
-            <Text style={styles.menuText}>
-              Notificaciones
-            </Text>
-
-            <Text style={styles.menuArrow}>
-              ›
-            </Text>
-          </TouchableOpacity>
-
-          {/* AYUDA */}
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={handleHelp}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.menuIcon}>
-              ❓
-            </Text>
-
-            <Text style={styles.menuText}>
-              Ayuda
-            </Text>
-
-            <Text style={styles.menuArrow}>
-              ›
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* CERRAR SESIÓN */}
-        <TouchableOpacity
-          style={[
-            styles.logoutButton,
-            loggingOut && styles.logoutButtonDisabled,
-          ]}
-          onPress={handleLogout}
-          activeOpacity={0.8}
-          disabled={loggingOut}
-        >
-          <Text style={styles.logoutText}>
-            {loggingOut ? 'Cerrando sesión...' : 'Cerrar sesión'}
-          </Text>
-        </TouchableOpacity>
       </ScrollView>
 
       {/* MODAL PERSONALIZADO */}
       <Modal
         visible={modalVisible}
-        transparent={true}
+        transparent
         animationType="fade"
         onRequestClose={() => {
           if (!loggingOut) {
@@ -266,20 +360,29 @@ export default function ProfileScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
 
-            {/* TÍTULO */}
+            <View
+              style={[
+                styles.modalIconContainer,
+                modalType === 'confirm'
+                  ? styles.modalWarning
+                  : styles.modalInformation,
+              ]}
+            >
+              <Text style={styles.modalIcon}>
+                {modalType === 'confirm' ? '⚠️' : 'ℹ️'}
+              </Text>
+            </View>
+
             <Text style={styles.modalTitle}>
               {modalTitle}
             </Text>
 
-            {/* MENSAJE */}
             <Text style={styles.modalMessage}>
               {modalMessage}
             </Text>
 
-            {/* BOTONES DE CONFIRMACIÓN */}
             {modalType === 'confirm' ? (
               <View style={styles.modalButtons}>
-
                 <Pressable
                   style={({ pressed }) => [
                     styles.cancelButton,
@@ -306,11 +409,8 @@ export default function ProfileScreen() {
                     {loggingOut ? 'Cerrando...' : 'Cerrar sesión'}
                   </Text>
                 </Pressable>
-
               </View>
             ) : (
-
-              /* BOTÓN PARA CERRAR INFORMACIÓN */
               <Pressable
                 style={({ pressed }) => [
                   styles.okButton,
@@ -322,8 +422,8 @@ export default function ProfileScreen() {
                   Entendido
                 </Text>
               </Pressable>
-
             )}
+
           </View>
         </View>
       </Modal>
@@ -331,162 +431,346 @@ export default function ProfileScreen() {
   );
 }
 
-// ESTILOS
 const styles = StyleSheet.create({
+  // CONTENEDOR PRINCIPAL
   container: {
     flex: 1,
-    backgroundColor: '#F5F7FA',
+    backgroundColor: '#F1F5F9',
   },
 
   content: {
-    padding: 20,
     flexGrow: 1,
+    padding: 20,
+    paddingBottom: 35,
   },
 
-  // TARJETA DE PERFIL
+  innerContent: {
+    width: '100%',
+    maxWidth: 850,
+    alignSelf: 'center',
+  },
+
+  // PERFIL
   profileCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    backgroundColor: '#172554',
+    borderRadius: 20,
     padding: 24,
+    marginBottom: 28,
+    elevation: 4,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+  },
+
+  profileTop: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    gap: 17,
   },
 
   avatarContainer: {
-    marginBottom: 16,
+    width: 76,
+    height: 76,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#3B82F6',
     color: '#FFFFFF',
-    fontSize: 36,
-    textAlign: 'center',
-    textAlignVertical: 'center',
-    lineHeight: 80,
-    overflow: 'hidden',
+    fontSize: 34,
+    fontWeight: '800',
   },
 
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#111827',
+  profileText: {
+    flex: 1,
+  },
+
+  profileEyebrow: {
+    color: '#93C5FD',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1.5,
     marginBottom: 8,
   },
 
-  email: {
-    fontSize: 16,
-    color: '#6B7280',
+  profileName: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: '800',
+    marginBottom: 5,
+  },
+
+  profileEmail: {
+    color: '#BFDBFE',
+    fontSize: 12,
+  },
+
+  profileDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    marginVertical: 19,
+  },
+
+  statusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#4ADE80',
+  },
+
+  statusText: {
+    color: '#DBEAFE',
+    fontSize: 12,
+    fontWeight: '600',
   },
 
   // SECCIONES
   section: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    marginBottom: 27,
+  },
+
+  sectionHeader: {
+    marginBottom: 15,
+  },
+
+  sectionEyebrow: {
+    color: '#2563EB',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1.4,
+    marginBottom: 6,
   },
 
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 16,
+    color: '#172554',
+    fontSize: 21,
+    fontWeight: '800',
+    marginBottom: 5,
   },
 
-  // INFORMACIÓN
+  sectionSubtitle: {
+    color: '#64748B',
+    fontSize: 13,
+  },
+
+  // INFORMACIÓN DE CUENTA
+  infoCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    elevation: 2,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 5,
+  },
+
   infoRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    alignItems: 'center',
+    paddingVertical: 15,
+    gap: 13,
+  },
+
+  infoIconContainer: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: '#EFF6FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  infoIcon: {
+    fontSize: 19,
+  },
+
+  infoContent: {
+    flex: 1,
   },
 
   label: {
-    fontSize: 14,
-    color: '#6B7280',
+    fontSize: 11,
+    color: '#94A3B8',
+    fontWeight: '600',
+    marginBottom: 5,
   },
 
   value: {
     fontSize: 14,
-    fontWeight: '500',
-    color: '#111827',
+    fontWeight: '700',
+    color: '#1E293B',
   },
 
   activeStatus: {
-    color: '#10B981',
+    color: '#16A34A',
   },
 
-  // MENÚ DE ACCIONES
+  infoDivider: {
+    height: 1,
+    backgroundColor: '#F1F5F9',
+  },
+
+  // MENÚ
   menuItem: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 15,
+    padding: 15,
+    marginBottom: 11,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    elevation: 1,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+  },
+
+  menuItemPressed: {
+    opacity: 0.75,
+  },
+
+  menuIconContainer: {
+    width: 46,
+    height: 46,
+    borderRadius: 13,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 14,
+  },
+
+  blueIcon: {
+    backgroundColor: '#EFF6FF',
+  },
+
+  orangeIcon: {
+    backgroundColor: '#FFF7ED',
+  },
+
+  purpleIcon: {
+    backgroundColor: '#F5F3FF',
   },
 
   menuIcon: {
-    fontSize: 20,
-    marginRight: 12,
+    fontSize: 22,
   },
 
-  menuText: {
-    fontSize: 16,
-    color: '#111827',
+  menuContent: {
     flex: 1,
   },
 
-  menuArrow: {
-    fontSize: 24,
-    color: '#9CA3AF',
+  menuText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginBottom: 4,
   },
 
-  // BOTÓN CERRAR SESIÓN
-  logoutButton: {
-    backgroundColor: '#EF4444',
-    borderRadius: 12,
-    padding: 16,
+  menuDescription: {
+    fontSize: 11,
+    color: '#64748B',
+  },
+
+  menuArrow: {
+    fontSize: 27,
+    color: '#94A3B8',
+    marginLeft: 8,
+  },
+
+  // CERRAR SESIÓN
+  logoutSection: {
+    marginTop: 5,
     alignItems: 'center',
-    marginTop: 'auto',
-    marginBottom: 10,
+  },
+
+  logoutButton: {
+    width: '100%',
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    borderRadius: 13,
+    paddingVertical: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+
+  logoutButtonPressed: {
+    backgroundColor: '#FEE2E2',
+    opacity: 0.8,
   },
 
   logoutButtonDisabled: {
     opacity: 0.6,
   },
 
-  logoutText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
+  logoutIcon: {
+    fontSize: 20,
+    color: '#DC2626',
   },
 
-  // MENSAJE SIN SESIÓN
-  errorText: {
-    fontSize: 16,
-    color: '#6B7280',
-    textAlign: 'center',
+  logoutText: {
+    color: '#DC2626',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+
+  footerText: {
+    color: '#94A3B8',
+    fontSize: 11,
     marginTop: 20,
+  },
+
+  // SIN SESIÓN
+  noSessionCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    padding: 30,
+    margin: 20,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+
+  noSessionIcon: {
+    fontSize: 40,
+    marginBottom: 15,
+  },
+
+  noSessionTitle: {
+    color: '#1E293B',
+    fontSize: 19,
+    fontWeight: '800',
+    marginBottom: 8,
+  },
+
+  noSessionText: {
+    color: '#64748B',
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 20,
   },
 
   // MODAL
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(15,23,42,0.55)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
@@ -496,54 +780,81 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 400,
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 24,
+    borderRadius: 20,
+    padding: 25,
+    alignItems: 'center',
     elevation: 8,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
-    shadowRadius: 6,
+    shadowRadius: 8,
+  },
+
+  modalIconContainer: {
+    width: 58,
+    height: 58,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+
+  modalWarning: {
+    backgroundColor: '#FEF2F2',
+  },
+
+  modalInformation: {
+    backgroundColor: '#EFF6FF',
+  },
+
+  modalIcon: {
+    fontSize: 27,
   },
 
   modalTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: 12,
+    fontWeight: '800',
+    color: '#1E293B',
+    marginBottom: 10,
+    textAlign: 'center',
   },
 
   modalMessage: {
-    fontSize: 15,
-    color: '#6B7280',
+    fontSize: 14,
+    color: '#64748B',
     lineHeight: 22,
-    marginBottom: 24,
+    textAlign: 'center',
+    marginBottom: 25,
   },
 
   // BOTONES DEL MODAL
   modalButtons: {
+    width: '100%',
     flexDirection: 'row',
-    justifyContent: 'flex-end',
-    flexWrap: 'wrap',
+    justifyContent: 'space-between',
     gap: 10,
   },
 
   cancelButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    backgroundColor: '#E5E7EB',
+    flex: 1,
+    paddingVertical: 13,
+    borderRadius: 10,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
   },
 
   cancelButtonText: {
-    color: '#374151',
-    fontWeight: '600',
+    color: '#475569',
+    fontSize: 13,
+    fontWeight: '700',
   },
 
   confirmButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    backgroundColor: '#EF4444',
+    flex: 1,
+    paddingVertical: 13,
+    borderRadius: 10,
+    backgroundColor: '#DC2626',
+    alignItems: 'center',
   },
 
   confirmButtonDisabled: {
@@ -552,22 +863,25 @@ const styles = StyleSheet.create({
 
   confirmButtonText: {
     color: '#FFFFFF',
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '700',
   },
 
   okButton: {
-    backgroundColor: '#3B82F6',
-    padding: 12,
-    borderRadius: 8,
+    width: '100%',
+    backgroundColor: '#2563EB',
+    paddingVertical: 13,
+    borderRadius: 10,
     alignItems: 'center',
   },
 
   okButtonText: {
     color: '#FFFFFF',
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '700',
   },
 
   buttonPressed: {
-    opacity: 0.7,
+    opacity: 0.75,
   },
 });

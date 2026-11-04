@@ -90,7 +90,9 @@ export function useStudents(): UseStudentsReturn {
         ...prev,
         error: "Error al eliminar estudiante.",
       }));
-    }
+
+      throw error;
+    } //Se propagan los errores de eliminación para que el componente que utiliza el hook pueda detectar si la operación falló y mostrar el resultado correcto al usuario.
   }, [canManageStudents]);
 
   useEffect(() => {

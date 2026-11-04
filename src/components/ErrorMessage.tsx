@@ -82,6 +82,15 @@ export default function ErrorMessage({ error, onRetry, onDismiss }: ErrorMessage
    * Siempre validar datos que vienen de fuentes externas (API, props, etc.)
    * TypeScript no puede protegernos de datos que no cumplen el tipo en runtime.
    */
+  /**
+   * ERROR #4 SOLUCIONADO:
+   * Se agrega optional chaining (?.) para evitar errores
+   * cuando el objeto error no contiene la propiedad message
+   * o su valor es null/undefined.
+   *
+   * También se agrega un mensaje alternativo para evitar
+   * que el componente muestre un valor vacío.
+   */
   const message = typeof error === 'string' 
     ? error 
     : error?.message || 'Error desconocido';
@@ -177,10 +186,18 @@ export default function ErrorMessage({ error, onRetry, onDismiss }: ErrorMessage
    * 2. Verificar que handleRetry siempre usa la última versión
    * 3. Usar console.log para comparar valores capturados vs actuales
    */
+  /**
+   * ERROR #5 SOLUCIONADO:
+   * Se utiliza useRef para conservar una referencia actualizada
+   * de la función onRetry.
+   *
+   * Así se evita que handleRetry utilice una versión antigua
+   * de la función cuando las propiedades del componente cambian.
+   */
   const onRetryRef = useRef(onRetry);
-  
+
   useEffect(() => {
-    // Mantener referencia actualizada cada vez que onRetry cambie
+    // Actualizar la referencia cuando cambie onRetry.
     onRetryRef.current = onRetry;
   }, [onRetry]);
 
@@ -269,6 +286,16 @@ export default function ErrorMessage({ error, onRetry, onDismiss }: ErrorMessage
    * 2. Verificar que no hay warnings de missing dependencies
    * 3. Usar React DevTools para verificar que callbacks se actualizan
    */
+  /**
+   * ERROR #6 SOLUCIONADO:
+   * Se evita utilizar directamente onRetry dentro de useCallback.
+   *
+   * En su lugar, se utiliza onRetryRef.current, que mantiene
+   * la referencia actualizada mediante useEffect.
+   *
+   * Por eso el callback puede conservar el array de dependencias
+   * vacío sin capturar una versión antigua de onRetry.
+   */
   const handleRetry = useCallback(() => {
     if (onRetryRef.current) {
       Alert.alert(
@@ -278,8 +305,7 @@ export default function ErrorMessage({ error, onRetry, onDismiss }: ErrorMessage
           { text: 'Cancelar', style: 'cancel' },
           { 
             text: 'Sí', 
-            // Usar ref.current para obtener la última versión
-            onPress: () => onRetryRef.current?.() 
+            onPress: () => onRetryRef.current?.()
           }
         ]
       );
@@ -356,6 +382,15 @@ export default function ErrorMessage({ error, onRetry, onDismiss }: ErrorMessage
          * 1. Activar VoiceOver (iOS) o TalkBack (Android)
          * 2. Navegar al componente de error
          * 3. Verificar que se anuncia "Advertencia" y no solo "emoji"
+         */}
+        {/**
+         * ERROR #7 SOLUCIONADO:
+         * Se agrega una descripción accesible al emoji de advertencia.
+         *
+         * accessibilityLabel proporciona un texto alternativo
+         * para los lectores de pantalla.
+         *
+         * accessibilityRole indica que el elemento representa una imagen.
          */}
         <Text 
           style={styles.icon}

@@ -69,6 +69,9 @@ interface StudentCardProps {
  * - No usar si el componente recibe funciones inline creadas en cada render del padre
  *   (en ese caso, usar useCallback en el padre para mantener referencia estable)
  */
+// ERROR #1 SOLUCIONADO:
+// Se utiliza React.memo para evitar renderizados innecesarios
+// cuando las propiedades (student y onPress) no han cambiado.
 const StudentCard = React.memo(({ student, onPress }: StudentCardProps) => {
   return (
     <TouchableOpacity
@@ -130,9 +133,16 @@ const StudentCard = React.memo(({ student, onPress }: StudentCardProps) => {
        * 2. Android: Configuración > Accesibilidad > TalkBack > Activar
        * 3. Navegar por la app y verificar que se anuncia info correcta
        */
-      accessible={true}
-      accessibilityLabel={`Estudiante ${student.nombre} ${student.apellido}`}
-      accessibilityHint="Toca para ver detalles del estudiante"
+        // ERROR #2 SOLUCIONADO:
+        // Se agrega accesibilidad para lectores de pantalla.
+        // accessible permite identificar el componente como accesible.
+        accessible={true}
+
+        // Describe qué estudiante contiene la tarjeta.
+        accessibilityLabel={`Estudiante ${student.nombre} ${student.apellido}`}
+
+        // Explica qué sucederá cuando el usuario lo seleccione.
+        accessibilityHint="Toca para ver detalles del estudiante"
     >
       <View style={styles.header}>
         <View style={styles.avatar}>
@@ -207,6 +217,14 @@ const StudentCard = React.memo(({ student, onPress }: StudentCardProps) => {
              * 1. Probar con datos mock que tengan null/undefined
              * 2. Verificar que el avatar muestra '?' en lugar de crash
              * 3. Verificar que no hay errores en consola
+             */}
+             {/**
+             * ERROR #3 SOLUCIONADO:
+             * Se utiliza optional chaining (?.) para evitar errores
+             * cuando nombre o apellido sean null o undefined.
+             *
+             * El operador || proporciona '?' cuando el valor está vacío
+             * o no existe.
              */}
             {student.nombre?.charAt(0) || '?'}{student.apellido?.charAt(0) || '?'}
           </Text>

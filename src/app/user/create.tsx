@@ -264,14 +264,6 @@ export default function CreateUserScreen() {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Regresar */}
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={handleGoBack}
-          disabled={loading}
-        >
-          <Text style={styles.backText}>← Regresar</Text>
-        </TouchableOpacity>
 
         {/* Encabezado */}
         <View style={styles.header}>
@@ -362,23 +354,38 @@ export default function CreateUserScreen() {
           </View>
 
           {/* Crear usuario */}
-          <TouchableOpacity
-            style={[
-              styles.submitButton,
-              loading && styles.disabledButton,
-            ]}
-            onPress={confirmCreateUser}
-            disabled={loading}
-            activeOpacity={0.8}
-          >
-            {loading ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <Text style={styles.submitText}>
-                Crear usuario
-              </Text>
-            )}
-          </TouchableOpacity>
+        <TouchableOpacity
+        style={[
+            styles.submitButton,
+            loading && styles.disabledButton,
+        ]}
+        onPress={confirmCreateUser}
+        disabled={loading}
+        activeOpacity={0.8}
+        >
+        {loading ? (
+            <ActivityIndicator color="#FFFFFF" />
+        ) : (
+            <Text style={styles.submitText}>
+            Crear usuario
+            </Text>
+        )}
+        </TouchableOpacity>
+
+        {/* Cancelar */}
+        <TouchableOpacity
+        style={[
+            styles.cancelFormButton,
+            loading && styles.disabledButton,
+        ]}
+        onPress={handleGoBack}
+        disabled={loading}
+        activeOpacity={0.8}
+        >
+        <Text style={styles.cancelFormText}>
+            Cancelar
+        </Text>
+        </TouchableOpacity>
         </View>
       </ScrollView>
 
@@ -699,4 +706,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "bold",
   },
+  cancelFormButton: {
+    height: 52,
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 4,
+    },
+
+    cancelFormText: {
+    color: "#64748B",
+    fontSize: 16,
+    fontWeight: "600",
+    },
 });
