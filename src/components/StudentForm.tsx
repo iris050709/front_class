@@ -5,12 +5,12 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import {
-  Keyboard,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    Keyboard,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 
 import type { Student } from '../types/student';
@@ -133,19 +133,20 @@ export default function StudentForm({
     setError('');
   }, []);
 
-  useEffect(() => {
-    if (!student) {
-      resetForm();
-    } else {
-      setNombre(student.nombre || '');
-      setApellido(student.apellido || '');
-      setMatricula(student.matricula || '');
-      setEmail(student.email || '');
-      setPassword('');
-      setShowPassword(false);
-      setError('');
-    }
-  }, [student, resetForm]);
+    useEffect(() => {
+        if (student) {
+            setNombre(student.nombre || '');
+            setApellido(student.apellido || '');
+            setMatricula(student.matricula || '');
+            setEmail(student.email || '');
+        } else {
+            resetForm();
+        }
+
+        setPassword('');
+        setShowPassword(false);
+        setError('');
+    }, [student?.id, resetForm]); //De esta manera, el formulario se actualiza cuando cambia el estudiante seleccionado, no simplemente porque se creó una nueva referencia del objeto.
 
   return (
     <View style={styles.container}>

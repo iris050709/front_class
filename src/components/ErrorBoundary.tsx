@@ -16,10 +16,20 @@ interface State {
 }
 
 export default class ErrorBoundary extends Component<Props, State> {
+  private isMounted: boolean = false;
+
   public state: State = {
     hasError: false,
     error: null,
   };
+
+  public componentDidMount() {
+    this.isMounted = true;
+  }
+
+  public componentWillUnmount() {
+    this.isMounted = false;
+  }
 
   public static getDerivedStateFromError(error: Error): State {
     return { hasError: true, error };
@@ -30,7 +40,9 @@ export default class ErrorBoundary extends Component<Props, State> {
   }
 
   private handleReset = () => {
-    this.setState({ hasError: false, error: null });
+    if (this.isMounted) {
+      this.setState({ hasError: false, error: null });
+    }
   };
 
   public render() {

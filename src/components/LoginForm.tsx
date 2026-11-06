@@ -12,14 +12,31 @@ export default function LoginForm({
     const mountedRef = useRef(true);
 
     useEffect(() => {
+        mountedRef.current = true;
+
         return () => {
-            mountedRef.current = false; // nunca se consulta mountedRef, se puede eliminar
+            mountedRef.current = false;
         };
     }, []);
 
     const handleLogin = async () => {
-        await onLogin(email, password);
-    }; //Ahora LoginForm espera a que termine la promesa de onLogin. Por eso, utilizar await en LoginForm permite esperar también a que termine ese proceso.
+        try {
+            await onLogin(email, password);
+
+            if (!mountedRef.current) {
+                return;
+            }
+
+            // El componente continúa montado.
+            // Aquí pueden realizarse acciones locales posteriores al login.
+        } catch (error) {
+            if (!mountedRef.current) {
+                return;
+            }
+
+            console.error("Error al iniciar sesión:", error);
+        }
+    };
 
     return (
         <View style={styles.container}>

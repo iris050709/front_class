@@ -3,11 +3,16 @@ import { useEffect, useState } from "react";
 import { Provider, useDispatch } from "react-redux";
 
 import { getCurrentUser } from "../api/auth.api";
+import { NotificationProvider } from "../context/NotificationContext";
 import { AppDispatch, setToken, setUser, store } from "../store/store";
 import {
-    clearTokens,
-    getAccessToken,
+  clearTokens,
+  getAccessToken,
 } from "../utils/storage";
+
+import NotificationList from "../components/NotificationList";
+import { CartProvider } from "../context/CartContext";
+import { ThemeProvider } from "../context/ThemeContext";
 
 import Loading from "../components/Loading";
 
@@ -15,6 +20,7 @@ function AppInitializer() {
   const dispatch = useDispatch<AppDispatch>();
   const [checkingSession, setCheckingSession] = useState(true);
 
+  
   useEffect(() => {
     let active = true;
 
@@ -22,23 +28,25 @@ function AppInitializer() {
       try {
         const token = await getAccessToken();
 
+        if (!active) return;
+
         if (!token) {
           dispatch(setToken(null));
           dispatch(setUser(null));
           return;
         }
 
-        // Recuperar los datos del usuario desde la API
         const user = await getCurrentUser();
 
         if (!active) return;
 
-        // Restaurar la sesión en Redux
         dispatch(setToken(token));
         dispatch(setUser(user));
 
       } catch (error) {
-        console.log("Error al recuperar la sesión:", error);
+        console.log('Error al recuperar la sesión:', error);
+
+        if (!active) return;
 
         await clearTokens();
 
@@ -74,7 +82,7 @@ function AppInitializer() {
       />
 
       <Stack.Screen
-        name="(tabs)"
+        name="home"
         options={{ headerShown: false }}
       />
 
@@ -89,7 +97,16 @@ function AppInitializer() {
 export default function RootLayout() {
   return (
     <Provider store={store}>
-      <AppInitializer />
+      <ThemeProvider>
+        <CartProvider>
+          <NotificationProvider>
+            <>
+              <AppInitializer />
+              <NotificationList />
+            </>
+          </NotificationProvider>
+        </CartProvider>
+      </ThemeProvider>
     </Provider>
   );
 }

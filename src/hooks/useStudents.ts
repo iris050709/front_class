@@ -77,23 +77,42 @@ export function useStudents(): UseStudentsReturn {
       return;
     }
 
+    let deletedStudent: Student | undefined;
+
+    // Guardar únicamente el estudiante que se eliminará.
+    setState(prev => {
+      deletedStudent = prev.students.find(
+        student => student.id === id
+      );
+
+      return {
+        ...prev,
+        students: prev.students.filter(
+          student => student.id !== id
+        ),
+        error: null,
+      };
+    });
+
     try {
       await studentService.delete(id);
-
-      setState(prev => ({
-        ...prev,
-        students: prev.students.filter(student => student.id !== id),
-        error: null,
-      }));
     } catch (error) {
-      setState(prev => ({
-        ...prev,
-        error: "Error al eliminar estudiante.",
-      }));
+      // Restaurar únicamente el estudiante eliminado.
+      if (deletedStudent) {
+        setState(prev => ({
+          ...prev,
+          students: prev.students.some(
+            student => student.id === id
+          )
+            ? prev.students
+            : [...prev.students, deletedStudent!],
+          error: "Error al eliminar estudiante.",
+        }));
+      }
 
       throw error;
-    } //Se propagan los errores de eliminación para que el componente que utiliza el hook pueda detectar si la operación falló y mostrar el resultado correcto al usuario.
-  }, [canManageStudents]);
+    }
+  }, [canManageStudents]); //Esta implementación evita reemplazar toda la lista con una copia anterior y conserva los cambios realizados en otros estudiantes.
 
   useEffect(() => {
     fetchStudents();

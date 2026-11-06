@@ -1,94 +1,116 @@
+
 /**
- * Layout de tabs para navegación inferior
- * Las pestañas dependen del tipo de usuario.
+ * Layout de tabs con navegación inferior
  */
 
-import { Tabs } from "expo-router";
-import { StyleSheet, Text } from "react-native";
-import { useSelector } from "react-redux";
-
-import { RootState } from "../../store/store";
+import { Ionicons } from '@expo/vector-icons';
+import { Tabs } from 'expo-router';
+import { useCart } from '../../context/CartContext';
+import { useTheme } from '../../context/ThemeContext';
 
 export default function TabLayout() {
-  const user = useSelector(
-    (state: RootState) => state.auth.user
-  );
-
-  // Solo las cuentas de administrador pueden ver Estudiantes.
-  const isAdmin = user?.kind === "user";
+  const { itemCount } = useCart();
+  const { colors } = useTheme();
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: "#3B82F6",
-        tabBarInactiveTintColor: "#6B7280",
-        tabBarStyle: styles.tabBar,
-        tabBarLabelStyle: styles.tabBarLabel,
-        headerStyle: styles.header,
-        headerTitleStyle: styles.headerTitle,
-        headerTitleAlign: "center",
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.secondary,
+
+        tabBarStyle: {
+          backgroundColor: colors.background,
+          borderTopColor: colors.border,
+          borderTopWidth: 1,
+          height: 60,
+          paddingBottom: 8,
+          paddingTop: 8,
+        },
+
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '500',
+        },
+
+        headerStyle: {
+          backgroundColor: colors.background,
+        },
+
+        headerTintColor: colors.text,
       }}
     >
+      {/* Inicio */}
       <Tabs.Screen
-        name="home"
+        name="index"
         options={{
-          title: "Inicio",
-          tabBarIcon: ({ color }) => (
-            <Text style={[styles.icon, { color }]}>🏠</Text>
+          title: 'Inicio',
+          tabBarLabel: 'Inicio',
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons
+              name={focused ? 'home' : 'home-outline'}
+              color={color}
+              size={size}
+            />
           ),
         }}
       />
 
+      {/* Estudiantes */}
       <Tabs.Screen
         name="students"
         options={{
-          title: "Estudiantes",
-          href: isAdmin ? undefined : null,
-          tabBarIcon: ({ color }) => (
-            <Text style={[styles.icon, { color }]}>👨‍🎓</Text>
+          title: 'Estudiantes',
+          tabBarLabel: 'Estudiantes',
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons
+              name={focused ? 'people' : 'people-outline'}
+              color={color}
+              size={size}
+            />
+          ),
+          tabBarBadge: itemCount > 0 ? itemCount : undefined,
+          tabBarBadgeStyle: {
+            backgroundColor: '#EF4444',
+            color: '#FFFFFF',
+            fontSize: 10,
+            minWidth: 18,
+            height: 18,
+            borderRadius: 9,
+          },
+        }}
+      />
+
+      {/* Perfil */}
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Perfil',
+          tabBarLabel: 'Perfil',
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons
+              name={focused ? 'person' : 'person-outline'}
+              color={color}
+              size={size}
+            />
           ),
         }}
       />
 
+      {/* Ajustes */}
       <Tabs.Screen
-        name="profile"
+        name="settings"
         options={{
-          title: "Perfil",
-          tabBarIcon: ({ color }) => (
-            <Text style={[styles.icon, { color }]}>👤</Text>
+          title: 'Ajustes',
+          tabBarLabel: 'Ajustes',
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons
+              name={focused ? 'settings' : 'settings-outline'}
+              color={color}
+              size={size}
+            />
           ),
         }}
       />
     </Tabs>
   );
 }
-
-const styles = StyleSheet.create({
-  tabBar: {
-    backgroundColor: "#FFFFFF",
-    borderTopWidth: 1,
-    borderTopColor: "#E5E7EB",
-    paddingTop: 8,
-    paddingBottom: 8,
-    height: 60,
-  },
-  tabBarLabel: {
-    fontSize: 12,
-    fontWeight: "500",
-  },
-  header: {
-    backgroundColor: "#FFFFFF",
-    elevation: 0,
-    shadowOpacity: 0,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#111827",
-  },
-  icon: {
-    fontSize: 24,
-  },
-});

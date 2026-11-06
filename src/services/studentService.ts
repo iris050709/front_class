@@ -9,11 +9,30 @@ class StudentService {
   private baseUrl = '/api/students';
   private cache = new Map<string, { data: any; timestamp: number }>();
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutos
+  private readonly MAX_CACHE_SIZE = 50; // Tamaño máximo de la caché
 
   private isValidCache(key: string): boolean {
     const cached = this.cache.get(key);
     if (!cached) return false;
     return Date.now() - cached.timestamp < this.CACHE_TTL;
+  }
+
+  private cleanCache() {
+    if (this.cache.size > this.MAX_CACHE_SIZE) {
+      const entries = Array.from(this.cache.entries());
+      entries.sort((a, b) => a[1].timestamp - b[1].timestamp);
+      
+      const toDelete = entries.slice(0, entries.length - this.MAX_CACHE_SIZE);
+      toDelete.forEach(([key]) => this.cache.delete(key));
+    }
+  }
+
+  private setCache(key: string, data: any) {
+    this.cache.set(key, {
+      data,
+      timestamp: Date.now(),
+    });
+    this.cleanCache();
   }
 
   async getAll(): Promise<Student[]> {
@@ -26,10 +45,7 @@ class StudentService {
     const response = await apiClient.get<{ data: Student[] }>(this.baseUrl);
     const students = response.data.data;
     
-    this.cache.set(cacheKey, {
-      data: students,
-      timestamp: Date.now(),
-    });
+    this.setCache(cacheKey, students);
     
     return students;
   }
@@ -44,10 +60,7 @@ class StudentService {
     const response = await apiClient.get<{ data: Student }>(`${this.baseUrl}/${id}`);
     const student = response.data.data;
     
-    this.cache.set(cacheKey, {
-      data: student,
-      timestamp: Date.now(),
-    });
+    this.setCache(cacheKey, student);
     
     return student;
   }

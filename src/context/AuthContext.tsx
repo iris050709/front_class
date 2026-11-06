@@ -2,11 +2,20 @@
  * Context para manejo global de autenticación
  */
 
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { User } from '../types/user';
+import {
+    createContext,
+    ReactNode,
+    useCallback,
+    useContext,
+    useEffect,
+    useMemo,
+    useState
+} from 'react';
 import * as authApi from '../api/auth.api';
-import { saveAccessToken, saveRefreshToken, getAccessToken, clearTokens } from '../utils/storage';
-import { handleApiError, ApiError } from '../utils/errorHandler';
+import { User } from '../types/user';
+import { ApiError, handleApiError } from '../utils/errorHandler';
+import { clearTokens, getAccessToken, saveAccessToken, saveRefreshToken } from '../utils/storage';
+
 
 interface AuthContextType {
   user: User | null;
@@ -56,7 +65,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       const response = await authApi.login({ email, password });
 
-      await saveAccessToken(response.token);
+      await saveAccessToken(response.accessToken);
       await saveRefreshToken(response.refreshToken);
 
       setUser(response.user);
@@ -88,14 +97,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
     checkAuth();
   }, [checkAuth]);
 
-  const value: AuthContextType = {
-    user,
-    loading,
-    error,
-    isAuthenticated,
-    login,
-    logout,
-  };
+    const value = useMemo<AuthContextType>(() => ({
+        user,
+        loading,
+        error,
+        isAuthenticated,
+        login,
+        logout,
+    }), [
+        user,
+        loading,
+        error,
+        isAuthenticated,
+        login,
+        logout,
+    ]); //useMemo memoriza el objeto value y solamente crea uno nuevo cuando cambia alguna de sus dependencias.
 
   return (
     <AuthContext.Provider value={value}>
