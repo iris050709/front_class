@@ -1,13 +1,13 @@
-
 /**
  * Pantalla de lista de estudiantes.
  * Compatible con Web, Android e iOS.
  * Solamente permite el acceso a usuarios de tipo "user".
- * Diseño profesional y moderno.
+ * Compatible con tema claro y oscuro.
  */
 
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
+
 import {
   ActivityIndicator,
   Modal,
@@ -16,15 +16,20 @@ import {
   Text,
   View,
 } from 'react-native';
+
 import { useSelector } from 'react-redux';
 
 import { ErrorMessage, Loading } from '../../components';
 import StudentList from '../../components/StudentList';
+import { useTheme } from '../../context/ThemeContext';
 import { useStudents } from '../../hooks/useStudents';
 import { RootState } from '../../store/store';
 
 export default function StudentsScreen() {
   const router = useRouter();
+
+  const { colors, theme } = useTheme();
+  const isDark = theme === 'dark';
 
   const user = useSelector(
     (state: RootState) => state.auth.user
@@ -48,6 +53,28 @@ export default function StudentsScreen() {
   const [modalType, setModalType] = useState<
     'confirm' | 'error' | 'success'
   >('confirm');
+
+  // Colores del modal según el tema.
+  const modalColors = {
+    confirm: {
+      background: isDark ? '#422F17' : '#FEF3C7',
+      border: isDark ? '#78551F' : '#FDE68A',
+      icon: '#D97706',
+      button: '#DC2626',
+    },
+    success: {
+      background: isDark ? '#163D2B' : '#DCFCE7',
+      border: isDark ? '#236344' : '#BBF7D0',
+      icon: '#16A34A',
+      button: colors.primary,
+    },
+    error: {
+      background: isDark ? '#44232A' : '#FEE2E2',
+      border: isDark ? '#713743' : '#FECACA',
+      icon: '#DC2626',
+      button: colors.primary,
+    },
+  };
 
   // Bloquear el acceso a estudiantes.
   useEffect(() => {
@@ -74,9 +101,11 @@ export default function StudentsScreen() {
 
     setSelectedStudentId(id);
     setModalType('confirm');
+
     setModalMessage(
       '¿Estás seguro de que deseas eliminar este estudiante? Esta acción no se puede deshacer.'
     );
+
     setModalVisible(true);
   };
 
@@ -160,50 +189,91 @@ export default function StudentsScreen() {
   }
 
   return (
-    <View style={styles.container}>
-
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: colors.background },
+      ]}
+    >
       {/* CONTENIDO PRINCIPAL */}
       <View style={styles.content}>
 
         {/* ENCABEZADO */}
-        <View style={styles.pageHeader}>
-
+        <View
+          style={[
+            styles.pageHeader,
+            {
+              backgroundColor: colors.card,
+              borderColor: colors.border,
+            },
+          ]}
+        >
           <View style={styles.headerTop}>
             <View style={styles.headerTextContainer}>
-              <Text style={styles.headerEyebrow}>
+              <Text
+                style={[
+                  styles.headerEyebrow,
+                  { color: colors.primary },
+                ]}
+              >
                 PANEL DE ADMINISTRACIÓN
               </Text>
 
-              <Text style={styles.title}>
+              <Text style={[styles.title, { color: colors.text }]}>
                 Gestión académica
               </Text>
 
-              <Text style={styles.subtitle}>
+              <Text
+                style={[
+                  styles.subtitle,
+                  { color: colors.secondary },
+                ]}
+              >
                 Administra y consulta los estudiantes registrados en el sistema.
               </Text>
             </View>
 
-            <View style={styles.headerIcon}>
+            <View
+              style={[
+                styles.headerIcon,
+                { backgroundColor: isDark ? '#1E3A5F' : '#EFF6FF' },
+              ]}
+            >
               <Text style={styles.headerIconText}>🎓</Text>
             </View>
           </View>
 
-          <View style={styles.headerDivider} />
+          <View
+            style={[
+              styles.headerDivider,
+              { backgroundColor: colors.border },
+            ]}
+          />
 
           {/* RESUMEN Y ACTUALIZACIÓN */}
           <View style={styles.headerActions}>
 
             <View style={styles.summaryCard}>
-              <View style={styles.summaryIcon}>
+              <View
+                style={[
+                  styles.summaryIcon,
+                  { backgroundColor: isDark ? '#1E3A5F' : '#EFF6FF' },
+                ]}
+              >
                 <Text style={styles.summaryIconText}>👥</Text>
               </View>
 
               <View style={styles.summaryContent}>
-                <Text style={styles.summaryNumber}>
+                <Text style={[styles.summaryNumber, { color: colors.text }]}>
                   {students.length}
                 </Text>
 
-                <Text style={styles.summaryLabel}>
+                <Text
+                  style={[
+                    styles.summaryLabel,
+                    { color: colors.secondary },
+                  ]}
+                >
                   Estudiantes registrados
                 </Text>
               </View>
@@ -212,6 +282,10 @@ export default function StudentsScreen() {
             <Pressable
               style={({ pressed }) => [
                 styles.refreshButton,
+                {
+                  backgroundColor: isDark ? '#1E3A5F' : '#EFF6FF',
+                  borderColor: isDark ? '#315780' : '#BFDBFE',
+                },
                 pressed && styles.buttonPressed,
                 refreshing && styles.refreshButtonDisabled,
               ]}
@@ -221,13 +295,25 @@ export default function StudentsScreen() {
               {refreshing ? (
                 <ActivityIndicator
                   size="small"
-                  color="#2563EB"
+                  color={colors.primary}
                 />
               ) : (
-                <Text style={styles.refreshIcon}>↻</Text>
+                <Text
+                  style={[
+                    styles.refreshIcon,
+                    { color: colors.primary },
+                  ]}
+                >
+                  ↻
+                </Text>
               )}
 
-              <Text style={styles.refreshButtonText}>
+              <Text
+                style={[
+                  styles.refreshButtonText,
+                  { color: isDark ? '#93C5FD' : '#1D4ED8' },
+                ]}
+              >
                 {refreshing ? 'Actualizando' : 'Actualizar'}
               </Text>
             </Pressable>
@@ -245,7 +331,12 @@ export default function StudentsScreen() {
         </View>
 
         {/* PIE DE PÁGINA */}
-        <Text style={styles.footerText}>
+        <Text
+          style={[
+            styles.footerText,
+            { color: colors.secondary },
+          ]}
+        >
           Sistema de gestión de estudiantes
         </Text>
 
@@ -256,22 +347,37 @@ export default function StudentsScreen() {
         visible={modalVisible}
         transparent
         animationType="fade"
+        statusBarTranslucent
         onRequestClose={closeModal}
       >
         <View style={styles.modalOverlay}>
 
-          <View style={styles.modalContainer}>
+          <View
+            style={[
+              styles.modalContainer,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+              },
+            ]}
+          >
 
             {/* ICONO SEGÚN EL ESTADO */}
             <View
               style={[
                 styles.modalIconContainer,
-                modalType === 'confirm' && styles.warningIconContainer,
-                modalType === 'success' && styles.successIconContainer,
-                modalType === 'error' && styles.errorIconContainer,
+                {
+                  backgroundColor: modalColors[modalType].background,
+                  borderColor: modalColors[modalType].border,
+                },
               ]}
             >
-              <Text style={styles.modalIcon}>
+              <Text
+                style={[
+                  styles.modalIcon,
+                  { color: modalColors[modalType].icon },
+                ]}
+              >
                 {modalType === 'confirm'
                   ? '!'
                   : modalType === 'success'
@@ -281,7 +387,7 @@ export default function StudentsScreen() {
             </View>
 
             {/* TÍTULO */}
-            <Text style={styles.modalTitle}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>
               {modalType === 'confirm'
                 ? 'Eliminar estudiante'
                 : modalType === 'success'
@@ -290,7 +396,12 @@ export default function StudentsScreen() {
             </Text>
 
             {/* MENSAJE */}
-            <Text style={styles.modalMessage}>
+            <Text
+              style={[
+                styles.modalMessage,
+                { color: colors.secondary },
+              ]}
+            >
               {modalMessage}
             </Text>
 
@@ -303,12 +414,16 @@ export default function StudentsScreen() {
                   style={({ pressed }) => [
                     styles.modalButton,
                     styles.cancelButton,
+                    {
+                      backgroundColor: colors.background,
+                      borderColor: colors.border,
+                    },
                     pressed && styles.buttonPressed,
                   ]}
                   onPress={closeModal}
                   disabled={deleting}
                 >
-                  <Text style={styles.cancelButtonText}>
+                  <Text style={[styles.cancelButtonText, { color: colors.text }]}>
                     Cancelar
                   </Text>
                 </Pressable>
@@ -342,6 +457,7 @@ export default function StudentsScreen() {
               <Pressable
                 style={({ pressed }) => [
                   styles.acceptButton,
+                  { backgroundColor: modalColors[modalType].button },
                   pressed && styles.buttonPressed,
                 ]}
                 onPress={closeModal}
@@ -366,7 +482,6 @@ const styles = StyleSheet.create({
   // CONTENEDOR PRINCIPAL
   container: {
     flex: 1,
-    backgroundColor: '#F1F5F9',
   },
 
   content: {
@@ -381,12 +496,10 @@ const styles = StyleSheet.create({
 
   // ENCABEZADO
   pageHeader: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 18,
     padding: 20,
     marginBottom: 18,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
     elevation: 2,
     shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 3 },
@@ -406,7 +519,6 @@ const styles = StyleSheet.create({
   },
 
   headerEyebrow: {
-    color: '#2563EB',
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 1.5,
@@ -416,13 +528,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 25,
     fontWeight: '800',
-    color: '#172554',
     marginBottom: 7,
   },
 
   subtitle: {
     fontSize: 13,
-    color: '#64748B',
     lineHeight: 20,
   },
 
@@ -430,7 +540,6 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 16,
-    backgroundColor: '#EFF6FF',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -441,7 +550,6 @@ const styles = StyleSheet.create({
 
   headerDivider: {
     height: 1,
-    backgroundColor: '#E2E8F0',
     marginVertical: 18,
   },
 
@@ -464,7 +572,6 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 12,
-    backgroundColor: '#EFF6FF',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -479,21 +586,17 @@ const styles = StyleSheet.create({
 
   summaryNumber: {
     fontSize: 21,
-    color: '#172554',
     fontWeight: '800',
   },
 
   summaryLabel: {
     fontSize: 11,
-    color: '#64748B',
     fontWeight: '500',
   },
 
   // ACTUALIZAR
   refreshButton: {
-    backgroundColor: '#EFF6FF',
     borderWidth: 1,
-    borderColor: '#BFDBFE',
     paddingHorizontal: 16,
     paddingVertical: 11,
     borderRadius: 10,
@@ -509,12 +612,10 @@ const styles = StyleSheet.create({
 
   refreshIcon: {
     fontSize: 20,
-    color: '#2563EB',
     fontWeight: '700',
   },
 
   refreshButtonText: {
-    color: '#1D4ED8',
     fontSize: 13,
     fontWeight: '700',
   },
@@ -531,7 +632,6 @@ const styles = StyleSheet.create({
   footerText: {
     textAlign: 'center',
     fontSize: 11,
-    color: '#94A3B8',
     marginTop: 12,
   },
 
@@ -547,8 +647,8 @@ const styles = StyleSheet.create({
   modalContainer: {
     width: '100%',
     maxWidth: 400,
-    backgroundColor: '#FFFFFF',
     borderRadius: 20,
+    borderWidth: 1,
     padding: 25,
     alignItems: 'center',
     elevation: 10,
@@ -563,47 +663,27 @@ const styles = StyleSheet.create({
     width: 62,
     height: 62,
     borderRadius: 31,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 18,
   },
 
-  warningIconContainer: {
-    backgroundColor: '#FEF2F2',
-    borderWidth: 1,
-    borderColor: '#FECACA',
-  },
-
-  successIconContainer: {
-    backgroundColor: '#DCFCE7',
-    borderWidth: 1,
-    borderColor: '#BBF7D0',
-  },
-
-  errorIconContainer: {
-    backgroundColor: '#FFF7ED',
-    borderWidth: 1,
-    borderColor: '#FED7AA',
-  },
-
   modalIcon: {
     fontSize: 27,
     fontWeight: '800',
-    color: '#DC2626',
   },
 
   // TEXTOS DEL MODAL
   modalTitle: {
     fontSize: 21,
     fontWeight: '800',
-    color: '#172554',
     marginBottom: 10,
     textAlign: 'center',
   },
 
   modalMessage: {
     fontSize: 14,
-    color: '#64748B',
     lineHeight: 22,
     textAlign: 'center',
     marginBottom: 25,
@@ -625,13 +705,10 @@ const styles = StyleSheet.create({
   },
 
   cancelButton: {
-    backgroundColor: '#F1F5F9',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
   },
 
   cancelButtonText: {
-    color: '#475569',
     fontWeight: '700',
     fontSize: 14,
   },
@@ -648,7 +725,6 @@ const styles = StyleSheet.create({
 
   acceptButton: {
     width: '100%',
-    backgroundColor: '#2563EB',
     paddingVertical: 13,
     borderRadius: 10,
     alignItems: 'center',

@@ -1,8 +1,4 @@
 
-/**
- * Context para manejo de carrito de compras
- */
-
 import {
     createContext,
     ReactNode,
@@ -10,21 +6,24 @@ import {
     useContext,
     useMemo,
     useState,
-} from 'react';
+} from "react";
 
-interface Product {
+// Producto
+export interface Product {
   id: number;
   name: string;
   price: number;
   quantity: number;
 }
 
+// Estado del carrito
 interface CartState {
   items: Product[];
   total: number;
   itemCount: number;
 }
 
+// Funciones y estado del contexto
 interface CartContextType extends CartState {
   addItem: (product: Product) => void;
   removeItem: (productId: number) => void;
@@ -32,48 +31,72 @@ interface CartContextType extends CartState {
   clearCart: () => void;
 }
 
-const CartContext = createContext<CartContextType | undefined>(undefined);
+// Crear contexto
+const CartContext = createContext<CartContextType | undefined>(
+  undefined
+);
 
+// Props del proveedor
 interface CartProviderProps {
   children: ReactNode;
 }
 
+// Proveedor del carrito
 export function CartProvider({ children }: CartProviderProps) {
   const [items, setItems] = useState<Product[]>([]);
 
+  // Agregar producto o incrementar cantidad
   const addItem = useCallback((product: Product) => {
-    setItems(prevItems => {
-      const existingItem = prevItems.find(
-        item => item.id === product.id
+    if (
+      !Number.isInteger(product.id) ||
+      !product.name.trim() ||
+      !Number.isFinite(product.price) ||
+      product.price < 0 ||
+      !Number.isInteger(product.quantity) ||
+      product.quantity <= 0
+    ) {
+      return;
+    }
+
+    setItems((previousItems) => {
+      const existing = previousItems.find(
+        (item) => item.id === product.id
       );
 
-      if (existingItem) {
-        return prevItems.map(item =>
+      if (existing) {
+        return previousItems.map((item) =>
           item.id === product.id
-            ? { ...item, quantity: item.quantity + product.quantity }
+            ? {
+                ...item,
+                quantity: item.quantity + product.quantity,
+              }
             : item
         );
       }
 
-      return [...prevItems, { ...product }];
+      return [...previousItems, { ...product }];
     });
   }, []);
 
+  // Eliminar producto
   const removeItem = useCallback((productId: number) => {
-    setItems(prevItems =>
-      prevItems.filter(item => item.id !== productId)
+    setItems((previousItems) =>
+      previousItems.filter((item) => item.id !== productId)
     );
   }, []);
 
+  // Actualizar cantidad
   const updateQuantity = useCallback(
     (productId: number, quantity: number) => {
+      if (!Number.isInteger(quantity)) return;
+
       if (quantity <= 0) {
         removeItem(productId);
         return;
       }
 
-      setItems(prevItems =>
-        prevItems.map(item =>
+      setItems((previousItems) =>
+        previousItems.map((item) =>
           item.id === productId
             ? { ...item, quantity }
             : item
@@ -83,43 +106,52 @@ export function CartProvider({ children }: CartProviderProps) {
     [removeItem]
   );
 
+  // Vaciar carrito
   const clearCart = useCallback(() => {
     setItems([]);
   }, []);
 
+  // Calcular total
   const total = useMemo(
-    () => items.reduce(
-      (sum, item) => sum + item.price * item.quantity,
-      0
-    ),
+    () =>
+      items.reduce(
+        (sum, item) => sum + item.price * item.quantity,
+        0
+      ),
     [items]
   );
 
+  // Calcular cantidad total de unidades
   const itemCount = useMemo(
-    () => items.reduce(
-      (count, item) => count + item.quantity,
-      0
-    ),
+    () =>
+      items.reduce(
+        (count, item) => count + item.quantity,
+        0
+      ),
     [items]
   );
 
-  const value = useMemo<CartContextType>(() => ({
-    items,
-    total,
-    itemCount,
-    addItem,
-    removeItem,
-    updateQuantity,
-    clearCart,
-  }), [
-    items,
-    total,
-    itemCount,
-    addItem,
-    removeItem,
-    updateQuantity,
-    clearCart,
-  ]);
+  // Valor del contexto
+  const value = useMemo<CartContextType>(
+    () => ({
+      items,
+      total,
+      itemCount,
+      addItem,
+      removeItem,
+      updateQuantity,
+      clearCart,
+    }),
+    [
+      items,
+      total,
+      itemCount,
+      addItem,
+      removeItem,
+      updateQuantity,
+      clearCart,
+    ]
+  );
 
   return (
     <CartContext.Provider value={value}>
@@ -128,11 +160,14 @@ export function CartProvider({ children }: CartProviderProps) {
   );
 }
 
-export function useCart() {
+// Hook personalizado
+export function useCart(): CartContextType {
   const context = useContext(CartContext);
 
-  if (context === undefined) {
-    throw new Error('useCart must be used within a CartProvider');
+  if (!context) {
+    throw new Error(
+      "useCart debe utilizarse dentro de un CartProvider"
+    );
   }
 
   return context;

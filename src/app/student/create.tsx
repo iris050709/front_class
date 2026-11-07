@@ -1,3 +1,4 @@
+
 /**
  * Pantalla para registrar un nuevo estudiante.
  * Compatible con Web, Android e iOS.
@@ -6,102 +7,174 @@
 import { Stack, useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
-    ActivityIndicator,
-    KeyboardAvoidingView,
-    Platform,
-    StyleSheet,
-    Text,
-    View,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
 
+import { useEffect } from 'react';
 import { createStudent } from '../../api/students.api';
 import StudentForm from '../../components/StudentForm';
+import { useNotification } from '../../context/NotificationContext';
+import { useTheme } from '../../context/ThemeContext';
 import { Student } from '../../types/student';
+
+import { useAuth } from '../../hooks/useAuth';
 
 export default function CreateStudentScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
+  const { user } = useAuth();
+
+  const { showSuccess, showError } = useNotification();
+
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+
+  useEffect(() => {
+    if (user?.kind === 'student') {
+      router.replace('/(tabs)/home');
+    }
+  }, [user, router]);
+
+  if (user?.kind === 'student') {
+    return null;
+  }
 
   const handleCreateStudent = async (
     data: Omit<Student, 'id' | 'created_at' | 'updated_at'> & {
-        password?: string;
+      password?: string;
     }
-    ) => {
+  ) => {
     if (!data.password) {
-        throw new Error('La contraseña es obligatoria.');
+      const message = 'La contraseña es obligatoria.';
+      showError(message);
+      throw new Error(message);
     }
 
-    setError('');
-    setSuccess('');
     setLoading(true);
 
     try {
-        await createStudent({
+      await createStudent({
         ...data,
         password: data.password,
         email: data.email.trim().toLowerCase(),
-        });
+      });
 
-        setSuccess('¡Estudiante registrado correctamente!');
+      showSuccess('¡Estudiante registrado correctamente!');
 
-        setTimeout(() => {
+      setTimeout(() => {
         router.replace('/(tabs)/students');
-        }, 1000);
+      }, 1000);
     } catch (err: any) {
-        console.error('Error al registrar estudiante:', err);
-        console.error('Respuesta API:', err?.response?.data);
+      console.error('Error al registrar estudiante:', err);
+      console.error('Respuesta API:', err?.response?.data);
 
-        setError(
+      const message =
         err?.response?.data?.message ||
-        'No se pudo registrar el estudiante. Intenta nuevamente.'
-        );
+        'No se pudo registrar el estudiante. Intenta nuevamente.';
 
-        throw err;
+      showError(message);
+
+      throw err;
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
-    };
+  };
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      style={[
+        styles.container,
+        { backgroundColor: colors.background },
+      ]}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <Stack.Screen
         options={{
           title: 'Agregar estudiante',
           headerBackTitle: 'Regresar',
+          headerStyle: {
+            backgroundColor: colors.background,
+          },
+          headerTintColor: colors.text,
+          headerTitleStyle: {
+            color: colors.text,
+            fontWeight: '700',
+          },
+          headerShadowVisible: false,
         }}
       />
 
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <Text style={styles.icon}>🎓</Text>
-          <Text style={styles.title}>Nuevo estudiante</Text>
-          <Text style={styles.subtitle}>
-            Completa los siguientes datos para registrar un estudiante.
-          </Text>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.content}>
+          {/* Encabezado */}
+          <View
+            style={[
+              styles.header,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            <View style={styles.iconContainer}>
+              <Text style={styles.icon}>🎓</Text>
+            </View>
+
+            <Text style={[styles.title, { color: colors.text }]}>
+              Nuevo estudiante
+            </Text>
+
+            <Text style={[styles.subtitle, { color: colors.secondary }]}>
+              Completa los siguientes datos para registrar un estudiante.
+            </Text>
+          </View>
+
+          {/* Indicador de carga */}
+          {loading && (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator
+                size="large"
+                color={colors.primary}
+              />
+
+              <Text
+                style={[
+                  styles.loadingText,
+                  { color: colors.secondary },
+                ]}
+              >
+                Registrando estudiante...
+              </Text>
+            </View>
+          )}
+
+          {/* Formulario */}
+          <View
+            style={[
+              styles.formContainer,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            <StudentForm
+              onSubmit={handleCreateStudent}
+              onCancel={() => router.back()}
+            />
+          </View>
         </View>
-
-        {loading && (
-          <ActivityIndicator size="large" color="#2563EB" />
-        )}
-
-        {error !== '' && (
-          <Text style={styles.error}>{error}</Text>
-        )}
-
-        {success !== '' && (
-          <Text style={styles.success}>{success}</Text>
-        )}
-
-        <StudentForm
-          onSubmit={handleCreateStudent}
-          onCancel={() => router.back()}
-        />
-      </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
@@ -109,40 +182,64 @@ export default function CreateStudentScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F7FA',
+  },
+  scroll: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 30,
   },
   content: {
-    flex: 1,
-    paddingVertical: 20,
+    width: '100%',
+    maxWidth: 650,
+    alignSelf: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 20,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 12,
-    paddingHorizontal: 20,
+    padding: 24,
+    marginBottom: 18,
+    borderRadius: 18,
+    borderWidth: 1,
+  },
+  iconContainer: {
+    width: 76,
+    height: 76,
+    borderRadius: 24,
+    backgroundColor: '#DBEAFE',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
   },
   icon: {
-    fontSize: 48,
-    marginBottom: 12,
+    fontSize: 38,
   },
   title: {
     fontSize: 25,
-    fontWeight: 'bold',
-    color: '#111827',
+    fontWeight: '800',
+    textAlign: 'center',
     marginBottom: 8,
   },
   subtitle: {
-    fontSize: 15,
-    color: '#6B7280',
+    fontSize: 14,
+    lineHeight: 21,
     textAlign: 'center',
   },
-  error: {
-    color: '#DC2626',
-    textAlign: 'center',
-    marginHorizontal: 20,
+  formContainer: {
+    width: '100%',
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 16,
+    marginBottom: 20,
   },
-  success: {
-    color: '#16A34A',
-    textAlign: 'center',
-    marginHorizontal: 20,
+  loadingContainer: {
+    alignItems: 'center',
+    padding: 14,
+    gap: 8,
+  },
+  loadingText: {
+    fontSize: 13,
   },
 });

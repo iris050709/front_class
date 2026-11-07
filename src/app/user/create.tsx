@@ -1,74 +1,62 @@
 
-import apiClient from "@/api/client";
-import { useRouter } from "expo-router";
-import { useState } from "react";
+/**
+ * Pantalla para registrar una nueva cuenta administradora.
+ * Compatible con Web, Android e iOS.
+ */
+
+import apiClient from '@/api/client';
+import { Stack, useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
-} from "react-native";
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { useAuth } from '../../hooks/useAuth';
 
-type ModalType = "success" | "error" | "warning" | "confirm";
-
-interface ModalData {
-  visible: boolean;
-  type: ModalType;
-  title: string;
-  message: string;
-  confirmText?: string;
-  cancelText?: string;
-  onConfirm?: () => void;
-  onCancel?: () => void;
-}
+import { useNotification } from '../../context/NotificationContext';
+import { useTheme } from '../../context/ThemeContext';
 
 export default function CreateUserScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
+  const { user } = useAuth();
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const { showSuccess, showError, showWarning } = useNotification();
+
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [loading, setLoading] = useState(false);
+  const [confirmModalVisible, setConfirmModalVisible] = useState(false);
 
-  const [modal, setModal] = useState<ModalData>({
-    visible: false,
-    type: "warning",
-    title: "",
-    message: "",
-  });
+  useEffect(() => {
+    if (user?.kind === 'student') {
+      router.replace('/(tabs)/home');
+    }
+  }, [user, router]);
 
-  // Mostrar ventana personalizada.
-  const showModal = (data: Omit<ModalData, "visible">) => {
-    setModal({
-      ...data,
-      visible: true,
-    });
-  };
-
-  // Cerrar ventana.
-  const closeModal = () => {
-    setModal((prev) => ({
-      ...prev,
-      visible: false,
-    }));
-  };
-
+  if (user?.kind === 'student') {
+    return null;
+  }
+  
   // Regresar a la pantalla anterior.
   const handleGoBack = () => {
     if (router.canGoBack()) {
       router.back();
     } else {
-      router.replace("/(tabs)/home");
+      router.replace('/(tabs)/home');
     }
   };
 
@@ -77,108 +65,83 @@ export default function CreateUserScreen() {
     const normalizedEmail = email.trim().toLowerCase();
 
     if (!normalizedEmail && !password && !confirmPassword) {
-      showModal({
-        type: "warning",
-        title: "Formulario vacío",
-        message: "Debes completar todos los campos para registrar un usuario.",
-        confirmText: "Entendido",
-      });
+      showWarning(
+        'Debes completar todos los campos para registrar un usuario.'
+      );
       return false;
     }
 
     if (!normalizedEmail) {
-      showModal({
-        type: "warning",
-        title: "Correo requerido",
-        message: "Ingresa el correo electrónico del nuevo usuario.",
-        confirmText: "Entendido",
-      });
+      showWarning('Ingresa el correo electrónico del nuevo usuario.');
       return false;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     if (!emailRegex.test(normalizedEmail)) {
-      showModal({
-        type: "warning",
-        title: "Correo inválido",
-        message: "Ingresa un correo electrónico válido.",
-        confirmText: "Entendido",
-      });
+      showWarning('Ingresa un correo electrónico válido.');
       return false;
     }
 
     if (!password) {
-      showModal({
-        type: "warning",
-        title: "Contraseña requerida",
-        message: "Ingresa una contraseña.",
-        confirmText: "Entendido",
-      });
+      showWarning('Ingresa una contraseña.');
       return false;
     }
 
     if (password.length < 6) {
-      showModal({
-        type: "warning",
-        title: "Contraseña inválida",
-        message: "La contraseña debe tener al menos 6 caracteres.",
-        confirmText: "Entendido",
-      });
+      showWarning('La contraseña debe tener al menos 6 caracteres.');
       return false;
     }
 
     if (!confirmPassword) {
-      showModal({
-        type: "warning",
-        title: "Confirmación requerida",
-        message: "Debes confirmar la contraseña.",
-        confirmText: "Entendido",
-      });
+      showWarning('Debes confirmar la contraseña.');
       return false;
     }
 
     if (password !== confirmPassword) {
-      showModal({
-        type: "warning",
-        title: "Las contraseñas no coinciden",
-        message: "Verifica que ambas contraseñas sean iguales.",
-        confirmText: "Entendido",
-      });
+      showWarning('Verifica que ambas contraseñas sean iguales.');
       return false;
     }
 
     return true;
   };
 
+  // Abrir confirmación de registro.
+  const confirmCreateUser = () => {
+    if (loading || !validateForm()) return;
+
+    setConfirmModalVisible(true);
+  };
+
   // Crear usuario administrador.
   const handleCreateUser = async () => {
-    if (loading || !validateForm()) return;
+    if (loading) return;
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    try {
-      setLoading(true);
+    setConfirmModalVisible(false);
+    setLoading(true);
 
-      await apiClient.post("/api/auth/users", {
+    try {
+      await apiClient.post('/api/auth/users', {
         email: normalizedEmail,
         password,
       });
 
-      setEmail("");
-      setPassword("");
-      setConfirmPassword("");
+      setEmail('');
+      setPassword('');
+      setConfirmPassword('');
       setShowPassword(false);
       setShowConfirmPassword(false);
 
-      showModal({
-        type: "success",
-        title: "¡Usuario creado!",
-        message: "La cuenta administradora se creó correctamente.",
-        confirmText: "Aceptar",
-        onConfirm: handleGoBack,
-      });
+      showSuccess('La cuenta administradora se creó correctamente.');
+
+      setTimeout(() => {
+        handleGoBack();
+      }, 1000);
     } catch (error: unknown) {
+      console.error('Error al crear usuario:', error);
+
       const apiError = error as {
         response?: {
           data?: {
@@ -191,259 +154,307 @@ export default function CreateUserScreen() {
       const message =
         apiError.response?.data?.error ||
         apiError.response?.data?.message ||
-        "No se pudo crear el usuario. Verifica tu conexión e inténtalo nuevamente.";
+        'No se pudo crear el usuario. Verifica tu conexión e inténtalo nuevamente.';
 
-      showModal({
-        type: "error",
-        title: "Error al crear usuario",
-        message,
-        confirmText: "Entendido",
-      });
+      showError(message);
     } finally {
       setLoading(false);
     }
   };
 
-  // Confirmación antes de registrar.
-  const confirmCreateUser = () => {
-    if (loading) return;
-
-    if (!validateForm()) return;
-
-    showModal({
-      type: "confirm",
-      title: "Confirmar registro",
-      message: `¿Deseas crear una cuenta administradora para ${email.trim()}?`,
-      confirmText: "Sí, crear",
-      cancelText: "Cancelar",
-      onConfirm: handleCreateUser,
-    });
-  };
-
-  // Acción del botón principal del modal.
-  const handleModalConfirm = () => {
-    const action = modal.onConfirm;
-
-    closeModal();
-
-    if (action) {
-      action();
-    }
-  };
-
-  // Cancelar confirmación.
-  const handleModalCancel = () => {
-    const action = modal.onCancel;
-
-    closeModal();
-
-    if (action) {
-      action();
-    }
-  };
-
-  const getModalIcon = () => {
-    switch (modal.type) {
-      case "success":
-        return "✓";
-      case "error":
-        return "✕";
-      case "confirm":
-        return "?";
-      default:
-        return "!";
-    }
-  };
-
   return (
     <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      style={[
+        styles.container,
+        { backgroundColor: colors.background },
+      ]}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
+      <Stack.Screen
+        options={{
+          title: 'Agregar usuario',
+          headerBackTitle: 'Regresar',
+          headerStyle: {
+            backgroundColor: colors.background,
+          },
+          headerTintColor: colors.text,
+          headerTitleStyle: {
+            color: colors.text,
+            fontWeight: '700',
+          },
+          headerShadowVisible: false,
+        }}
+      />
+
       <ScrollView
+        style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
+        <View style={styles.content}>
+          {/* Encabezado */}
+          <View
+            style={[
+              styles.header,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            <View style={styles.iconContainer}>
+              <Text style={styles.icon}>👤</Text>
+            </View>
 
-        {/* Encabezado */}
-        <View style={styles.header}>
-          <Text style={styles.title}>Agregar usuario</Text>
-          <Text style={styles.subtitle}>
-            Registra una nueva cuenta administradora.
-          </Text>
-        </View>
+            <Text style={[styles.title, { color: colors.text }]}>
+              Agregar usuario
+            </Text>
 
-        {/* Formulario */}
-        <View style={styles.form}>
-          <Text style={styles.label}>Correo electrónico</Text>
+            <Text style={[styles.subtitle, { color: colors.secondary }]}>
+              Registra una nueva cuenta administradora.
+            </Text>
+          </View>
 
-          <TextInput
-            style={styles.input}
-            placeholder="usuario@correo.com"
-            placeholderTextColor="#999"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-            editable={!loading}
-          />
+          {/* Formulario */}
+          <View
+            style={[
+              styles.form,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            {/* Correo */}
+            <Text style={[styles.label, { color: colors.text }]}>
+              Correo electrónico
+            </Text>
 
-          {/* Contraseña */}
-          <Text style={styles.label}>Contraseña</Text>
-
-          <View style={styles.passwordContainer}>
             <TextInput
-              style={styles.passwordInput}
-              placeholder="Mínimo 6 caracteres"
-              placeholderTextColor="#999"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={!showPassword}
+              style={[
+                styles.input,
+                {
+                  backgroundColor: colors.background,
+                  borderColor: colors.border,
+                  color: colors.text,
+                },
+              ]}
+              placeholder="usuario@correo.com"
+              placeholderTextColor={colors.secondary}
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
               editable={!loading}
             />
 
-            <TouchableOpacity
-              style={styles.showButton}
-              onPress={() => setShowPassword(!showPassword)}
-              disabled={loading}
-            >
-              <Text style={styles.showButtonText}>
-                {showPassword ? "Ocultar" : "Mostrar"}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Confirmar contraseña */}
-          <Text style={styles.label}>Confirmar contraseña</Text>
-
-          <View style={styles.passwordContainer}>
-            <TextInput
-              style={styles.passwordInput}
-              placeholder="Repite la contraseña"
-              placeholderTextColor="#999"
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              secureTextEntry={!showConfirmPassword}
-              autoCapitalize="none"
-              autoCorrect={false}
-              editable={!loading}
-            />
-
-            <TouchableOpacity
-              style={styles.showButton}
-              onPress={() =>
-                setShowConfirmPassword(!showConfirmPassword)
-              }
-              disabled={loading}
-            >
-              <Text style={styles.showButtonText}>
-                {showConfirmPassword ? "Ocultar" : "Mostrar"}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Información */}
-          <View style={styles.info}>
-            <Text style={styles.infoText}>
-              Esta cuenta tendrá permisos de administrador y podrá gestionar
-              estudiantes.
+            {/* Contraseña */}
+            <Text style={[styles.label, { color: colors.text }]}>
+              Contraseña
             </Text>
-          </View>
 
-          {/* Crear usuario */}
-        <TouchableOpacity
-        style={[
-            styles.submitButton,
-            loading && styles.disabledButton,
-        ]}
-        onPress={confirmCreateUser}
-        disabled={loading}
-        activeOpacity={0.8}
-        >
-        {loading ? (
-            <ActivityIndicator color="#FFFFFF" />
-        ) : (
-            <Text style={styles.submitText}>
-            Crear usuario
-            </Text>
-        )}
-        </TouchableOpacity>
-
-        {/* Cancelar */}
-        <TouchableOpacity
-        style={[
-            styles.cancelFormButton,
-            loading && styles.disabledButton,
-        ]}
-        onPress={handleGoBack}
-        disabled={loading}
-        activeOpacity={0.8}
-        >
-        <Text style={styles.cancelFormText}>
-            Cancelar
-        </Text>
-        </TouchableOpacity>
-        </View>
-      </ScrollView>
-
-      {/* Modal multiplataforma */}
-      <Modal
-        visible={modal.visible}
-        transparent
-        animationType="fade"
-        onRequestClose={modal.type === "confirm" ? handleModalCancel : closeModal}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
             <View
               style={[
-                styles.modalIcon,
-                modal.type === "success" && styles.successIcon,
-                modal.type === "error" && styles.errorIcon,
-                modal.type === "warning" && styles.warningIcon,
-                modal.type === "confirm" && styles.confirmIcon,
+                styles.passwordContainer,
+                {
+                  backgroundColor: colors.background,
+                  borderColor: colors.border,
+                },
               ]}
             >
-              <Text style={styles.modalIconText}>
-                {getModalIcon()}
+              <TextInput
+                style={[styles.passwordInput, { color: colors.text }]}
+                placeholder="Mínimo 6 caracteres"
+                placeholderTextColor={colors.secondary}
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
+                autoCorrect={false}
+                editable={!loading}
+              />
+
+              <TouchableOpacity
+                style={styles.showButton}
+                onPress={() => setShowPassword(!showPassword)}
+                disabled={loading}
+              >
+                <Text style={[styles.showButtonText, { color: colors.primary }]}>
+                  {showPassword ? 'Ocultar' : 'Mostrar'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Confirmar contraseña */}
+            <Text style={[styles.label, { color: colors.text }]}>
+              Confirmar contraseña
+            </Text>
+
+            <View
+              style={[
+                styles.passwordContainer,
+                {
+                  backgroundColor: colors.background,
+                  borderColor: colors.border,
+                },
+              ]}
+            >
+              <TextInput
+                style={[styles.passwordInput, { color: colors.text }]}
+                placeholder="Repite la contraseña"
+                placeholderTextColor={colors.secondary}
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                secureTextEntry={!showConfirmPassword}
+                autoCapitalize="none"
+                autoCorrect={false}
+                editable={!loading}
+              />
+
+              <TouchableOpacity
+                style={styles.showButton}
+                onPress={() =>
+                  setShowConfirmPassword(!showConfirmPassword)
+                }
+                disabled={loading}
+              >
+                <Text style={[styles.showButtonText, { color: colors.primary }]}>
+                  {showConfirmPassword ? 'Ocultar' : 'Mostrar'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Información */}
+            <View
+              style={[
+                styles.info,
+                {
+                  backgroundColor: colors.background,
+                  borderColor: colors.border,
+                },
+              ]}
+            >
+              <Text style={[styles.infoTitle, { color: colors.primary }]}>
+                Información de la cuenta
+              </Text>
+
+              <Text style={[styles.infoText, { color: colors.secondary }]}>
+                Esta cuenta tendrá permisos de administrador y podrá gestionar
+                estudiantes.
               </Text>
             </View>
 
-            <Text style={styles.modalTitle}>
-              {modal.title}
+            {/* Crear usuario */}
+            <TouchableOpacity
+              style={[
+                styles.submitButton,
+                { backgroundColor: colors.primary },
+                loading && styles.disabledButton,
+              ]}
+              onPress={confirmCreateUser}
+              disabled={loading}
+              activeOpacity={0.8}
+            >
+              {loading ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.submitText}>
+                  Crear usuario
+                </Text>
+              )}
+            </TouchableOpacity>
+
+            {/* Cancelar */}
+            <TouchableOpacity
+              style={[
+                styles.cancelButton,
+                {
+                  backgroundColor: colors.background,
+                  borderColor: colors.border,
+                },
+                loading && styles.disabledButton,
+              ]}
+              onPress={handleGoBack}
+              disabled={loading}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.cancelText, { color: colors.secondary }]}>
+                Cancelar
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </ScrollView>
+
+      {/* Modal de confirmación */}
+      <Modal
+        visible={confirmModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setConfirmModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View
+            style={[
+              styles.modalContainer,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            <View
+              style={[
+                styles.modalIcon,
+                { backgroundColor: colors.background },
+              ]}
+            >
+              <Text style={[styles.modalIconText, { color: colors.primary }]}>
+                ?
+              </Text>
+            </View>
+
+            <Text style={[styles.modalTitle, { color: colors.text }]}>
+              Confirmar registro
             </Text>
 
-            <Text style={styles.modalMessage}>
-              {modal.message}
+            <Text style={[styles.modalMessage, { color: colors.secondary }]}>
+              ¿Deseas crear una cuenta administradora para{' '}
+              {email.trim().toLowerCase()}?
             </Text>
 
             <View style={styles.modalButtons}>
-              {modal.cancelText && (
-                <TouchableOpacity
-                  style={styles.cancelButton}
-                  onPress={handleModalCancel}
+              <TouchableOpacity
+                style={[
+                  styles.modalCancelButton,
+                  {
+                    backgroundColor: colors.background,
+                    borderColor: colors.border,
+                  },
+                ]}
+                onPress={() => setConfirmModalVisible(false)}
+              >
+                <Text
+                  style={[
+                    styles.modalCancelText,
+                    { color: colors.secondary },
+                  ]}
                 >
-                  <Text style={styles.cancelButtonText}>
-                    {modal.cancelText}
-                  </Text>
-                </TouchableOpacity>
-              )}
+                  Cancelar
+                </Text>
+              </TouchableOpacity>
 
               <TouchableOpacity
                 style={[
                   styles.modalConfirmButton,
-                  !modal.cancelText && styles.fullModalButton,
-                  modal.type === "success" && styles.successButton,
-                  modal.type === "error" && styles.errorButton,
-                  modal.type === "warning" && styles.warningButton,
+                  { backgroundColor: colors.primary },
                 ]}
-                onPress={handleModalConfirm}
+                onPress={handleCreateUser}
               >
                 <Text style={styles.modalConfirmText}>
-                  {modal.confirmText || "Aceptar"}
+                  Sí, crear
                 </Text>
               </TouchableOpacity>
             </View>
@@ -457,266 +468,206 @@ export default function CreateUserScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F5F7FB",
   },
-
+  scroll: {
+    flex: 1,
+  },
   scrollContent: {
     flexGrow: 1,
-    padding: 24,
+    paddingBottom: 30,
   },
-
-  backButton: {
-    alignSelf: "flex-start",
-    paddingVertical: 10,
+  content: {
+    width: '100%',
+    maxWidth: 650,
+    alignSelf: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 20,
   },
-
-  backText: {
-    color: "#2563EB",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-
   header: {
-    marginTop: 30,
-    marginBottom: 30,
+    alignItems: 'center',
+    padding: 24,
+    marginBottom: 18,
+    borderRadius: 18,
+    borderWidth: 1,
   },
-
+  iconContainer: {
+    width: 76,
+    height: 76,
+    borderRadius: 24,
+    backgroundColor: '#DBEAFE',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  icon: {
+    fontSize: 38,
+  },
   title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#1E293B",
+    fontSize: 25,
+    fontWeight: '800',
+    textAlign: 'center',
+    marginBottom: 8,
   },
-
   subtitle: {
-    marginTop: 8,
-    fontSize: 15,
-    color: "#64748B",
+    fontSize: 14,
+    lineHeight: 21,
+    textAlign: 'center',
   },
-
   form: {
-    backgroundColor: "#FFFFFF",
-    padding: 22,
-    borderRadius: 16,
+    width: '100%',
+    padding: 20,
+    borderRadius: 18,
+    borderWidth: 1,
     gap: 12,
   },
-
   label: {
     fontSize: 14,
-    fontWeight: "600",
-    color: "#334155",
+    fontWeight: '600',
     marginTop: 8,
   },
-
   input: {
     height: 50,
     borderWidth: 1,
-    borderColor: "#CBD5E1",
     borderRadius: 10,
     paddingHorizontal: 14,
     fontSize: 15,
-    color: "#1E293B",
-    backgroundColor: "#FFFFFF",
   },
-
   passwordContainer: {
-    height: 50,
-    flexDirection: "row",
-    alignItems: "center",
+    minHeight: 50,
+    flexDirection: 'row',
+    alignItems: 'center',
     borderWidth: 1,
-    borderColor: "#CBD5E1",
     borderRadius: 10,
-    backgroundColor: "#FFFFFF",
   },
-
   passwordInput: {
     flex: 1,
-    height: "100%",
+    minHeight: 50,
     paddingHorizontal: 14,
     fontSize: 15,
-    color: "#1E293B",
   },
-
   showButton: {
     paddingHorizontal: 12,
-    height: "100%",
-    justifyContent: "center",
-    alignItems: "center",
+    minHeight: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-
   showButtonText: {
-    color: "#2563EB",
     fontSize: 13,
-    fontWeight: "600",
+    fontWeight: '600',
   },
-
   info: {
-    backgroundColor: "#EFF6FF",
     padding: 14,
     borderRadius: 10,
-    marginTop: 10,
+    borderWidth: 1,
+    marginTop: 8,
   },
-
+  infoTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    marginBottom: 5,
+  },
   infoText: {
-    color: "#1D4ED8",
     fontSize: 13,
     lineHeight: 20,
   },
-
   submitButton: {
     height: 52,
-    backgroundColor: "#2563EB",
     borderRadius: 10,
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 12,
   },
-
   disabledButton: {
     opacity: 0.6,
   },
-
   submitText: {
-    color: "#FFFFFF",
+    color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: 'bold',
   },
-
-  // Estilos del modal.
+  cancelButton: {
+    height: 52,
+    borderRadius: 10,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cancelText: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(15, 23, 42, 0.55)",
-    justifyContent: "center",
-    alignItems: "center",
+    backgroundColor: 'rgba(15, 23, 42, 0.55)',
+    justifyContent: 'center',
+    alignItems: 'center',
     padding: 24,
   },
-
   modalContainer: {
-    width: "100%",
+    width: '100%',
     maxWidth: 400,
-    backgroundColor: "#FFFFFF",
     borderRadius: 20,
+    borderWidth: 1,
     padding: 24,
-    alignItems: "center",
+    alignItems: 'center',
     elevation: 10,
-    shadowColor: "#000000",
-    shadowOffset: {
-      width: 0,
-      height: 5,
-    },
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 5 },
     shadowOpacity: 0.2,
     shadowRadius: 12,
   },
-
   modalIcon: {
     width: 60,
     height: 60,
     borderRadius: 30,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 16,
   },
-
-  successIcon: {
-    backgroundColor: "#DCFCE7",
-  },
-
-  errorIcon: {
-    backgroundColor: "#FEE2E2",
-  },
-
-  warningIcon: {
-    backgroundColor: "#FEF3C7",
-  },
-
-  confirmIcon: {
-    backgroundColor: "#DBEAFE",
-  },
-
   modalIconText: {
     fontSize: 30,
-    fontWeight: "bold",
-    color: "#1E293B",
+    fontWeight: 'bold',
   },
-
   modalTitle: {
     fontSize: 21,
-    fontWeight: "bold",
-    color: "#1E293B",
-    textAlign: "center",
+    fontWeight: 'bold',
+    textAlign: 'center',
     marginBottom: 10,
   },
-
   modalMessage: {
     fontSize: 15,
     lineHeight: 22,
-    color: "#64748B",
-    textAlign: "center",
+    textAlign: 'center',
     marginBottom: 24,
   },
-
   modalButtons: {
-    width: "100%",
-    flexDirection: "row",
-    justifyContent: "center",
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'center',
     gap: 10,
   },
-
-  cancelButton: {
+  modalCancelButton: {
     flex: 1,
     height: 48,
     borderRadius: 10,
-    backgroundColor: "#F1F5F9",
-    justifyContent: "center",
-    alignItems: "center",
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-
-  cancelButtonText: {
-    color: "#475569",
+  modalCancelText: {
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: '600',
   },
-
   modalConfirmButton: {
     flex: 1,
     height: 48,
     borderRadius: 10,
-    backgroundColor: "#2563EB",
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-
-  fullModalButton: {
-    flex: 1,
-  },
-
-  successButton: {
-    backgroundColor: "#16A34A",
-  },
-
-  errorButton: {
-    backgroundColor: "#DC2626",
-  },
-
-  warningButton: {
-    backgroundColor: "#D97706",
-  },
-
   modalConfirmText: {
-    color: "#FFFFFF",
+    color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: "bold",
+    fontWeight: 'bold',
   },
-  cancelFormButton: {
-    height: 52,
-    backgroundColor: "#FFFFFF",
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 4,
-    },
-
-    cancelFormText: {
-    color: "#64748B",
-    fontSize: 16,
-    fontWeight: "600",
-    },
 });

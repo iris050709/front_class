@@ -1,4 +1,3 @@
-
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Provider, useDispatch, useSelector } from 'react-redux';
@@ -97,8 +96,6 @@ function AppInitializer() {
 
     // Rutas públicas.
     const isPublicRoute =
-      !firstSegment ||
-      firstSegment === 'index' ||
       firstSegment === 'login' ||
       firstSegment === 'register';
 

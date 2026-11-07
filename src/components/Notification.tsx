@@ -1,8 +1,17 @@
+
 /**
- * Componente de notificacion toast
+ * Componente de notificación toast
+ * Adaptado al tema global (claro/oscuro).
  */
 
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from 'react-native';
+
+import { useTheme } from '../context/ThemeContext';
 
 interface NotificationProps {
   notification: {
@@ -21,19 +30,92 @@ const typeColors = {
   info: '#3B82F6',
 };
 
-export default function Notification({ notification, onDismiss }: NotificationProps) {
-  const backgroundColor = typeColors[notification.type];
+const typeLabels = {
+  success: '✓',
+  error: '!',
+  warning: '⚠',
+  info: 'i',
+};
+
+export default function Notification({
+  notification,
+  onDismiss,
+}: NotificationProps) {
+  const { colors, theme } = useTheme();
+
+  const accentColor = typeColors[notification.type];
+  const isDark = theme === 'dark';
 
   return (
-    <View style={[styles.container, { backgroundColor }]}>
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: colors.card,
+          borderColor: colors.border,
+          borderLeftColor: accentColor,
+          shadowColor: isDark ? '#000000' : '#64748B',
+        },
+      ]}
+    >
+      {/* Indicador del tipo de notificación */}
+      <View
+        style={[
+          styles.iconContainer,
+          {
+            backgroundColor: `${accentColor}20`,
+          },
+        ]}
+      >
+        <Text
+          style={[
+            styles.icon,
+            { color: accentColor },
+          ]}
+        >
+          {typeLabels[notification.type]}
+        </Text>
+      </View>
+
+      {/* Contenido */}
       <View style={styles.content}>
-        <Text style={styles.title}>{notification.title}</Text>
+        <Text
+          style={[
+            styles.title,
+            { color: colors.text },
+          ]}
+        >
+          {notification.title}
+        </Text>
+
         {notification.message && (
-          <Text style={styles.message}>{notification.message}</Text>
+          <Text
+            style={[
+              styles.message,
+              { color: colors.secondary },
+            ]}
+          >
+            {notification.message}
+          </Text>
         )}
       </View>
-      <TouchableOpacity onPress={() => onDismiss(notification.id)}>
-        <Text style={styles.dismiss}>X</Text>
+
+      {/* Botón para cerrar */}
+      <TouchableOpacity
+        onPress={() => onDismiss(notification.id)}
+        style={styles.dismissButton}
+        activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel="Cerrar notificación"
+      >
+        <Text
+          style={[
+            styles.dismiss,
+            { color: colors.secondary },
+          ]}
+        >
+          ×
+        </Text>
       </TouchableOpacity>
     </View>
   );
@@ -43,34 +125,59 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     marginHorizontal: 16,
     marginVertical: 4,
-    padding: 16,
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderLeftWidth: 4,
+
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.12,
     shadowRadius: 4,
     elevation: 3,
   },
+
+  iconContainer: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+
+  icon: {
+    fontSize: 17,
+    fontWeight: 'bold',
+  },
+
   content: {
     flex: 1,
   },
+
   title: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
   },
+
   message: {
-    color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 13,
     marginTop: 4,
+    lineHeight: 19,
   },
+
+  dismissButton: {
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    marginLeft: 8,
+  },
+
   dismiss: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginLeft: 12,
+    fontSize: 24,
+    fontWeight: '400',
   },
 });

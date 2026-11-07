@@ -8,13 +8,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter, type Href } from 'expo-router';
 
 import {
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
+import { useCart } from '../../context/CartContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -30,6 +31,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const { user } = useAuth();
+  const { itemCount } = useCart();
 
   // Obtener nombre completo.
   const fullName = `${user?.nombre ?? ''} ${user?.apellido ?? ''}`.trim();
@@ -206,6 +208,64 @@ export default function HomeScreen() {
           </TouchableOpacity>
         ))}
 
+        {/* CARRITO DE COMPRAS */}
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>
+          Compras
+        </Text>
+
+        <TouchableOpacity
+          style={[
+            styles.actionCard,
+            { backgroundColor: colors.card },
+          ]}
+          onPress={() => router.push('/cart-test')}
+          activeOpacity={0.7}
+        >
+          <View style={styles.cartIconContainer}>
+            <Ionicons
+              name="cart-outline"
+              size={24}
+              color="#FFFFFF"
+            />
+
+            {itemCount > 0 && (
+              <View style={styles.cartBadge}>
+                <Text style={styles.cartBadgeText}>
+                  {itemCount > 99 ? '99+' : itemCount}
+                </Text>
+              </View>
+            )}
+          </View>
+
+          <View style={styles.actionContent}>
+            <Text
+              style={[
+                styles.actionTitle,
+                { color: colors.text },
+              ]}
+            >
+              Carrito de compras
+            </Text>
+
+            <Text
+              style={[
+                styles.actionDescription,
+                { color: colors.secondary },
+              ]}
+            >
+              {itemCount === 0
+                ? 'No tienes productos agregados'
+                : `${itemCount} producto(s) en tu carrito`}
+            </Text>
+          </View>
+
+          <Ionicons
+            name="chevron-forward"
+            size={20}
+            color={colors.secondary}
+          />
+        </TouchableOpacity>
+
         {!user && (
           <Text style={[styles.loadingText, { color: colors.secondary }]}>
             Cargando información del usuario...
@@ -312,5 +372,36 @@ const styles = StyleSheet.create({
   loadingText: {
     textAlign: 'center',
     marginTop: 20,
+  },
+  cartIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    marginRight: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F59E0B',
+    position: 'relative',
+  },
+
+  cartBadge: {
+    position: 'absolute',
+    top: -7,
+    right: -7,
+    minWidth: 19,
+    height: 19,
+    borderRadius: 10,
+    backgroundColor: '#EF4444',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 1,
+    borderColor: '#FFFFFF',
+  },
+
+  cartBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
 });

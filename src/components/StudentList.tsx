@@ -1,20 +1,21 @@
 
 /**
- * Componente de lista de estudiantes.
- * Compatible con Web, Android e iOS.
- * Incluye búsqueda con debounce y eliminación de estudiantes.
+ * Lista de estudiantes.
+ * Diseño compacto y compatible con tema claro y oscuro.
  */
 
-import { useCallback, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
-  FlatList,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
+    FlatList,
+    Pressable,
+    StyleSheet,
+    Text,
+    View,
 } from 'react-native';
 
+import { useTheme } from '../context/ThemeContext';
 import { Student } from '../types/student';
+
 import SearchBar from './SearchBar';
 import StudentCard from './StudentCard';
 
@@ -31,13 +32,13 @@ export default function StudentList({
 }: StudentListProps) {
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Filtrar estudiantes según la búsqueda.
+  const { colors, theme } = useTheme();
+  const isDark = theme === 'dark';
+
   const filteredStudents = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
 
-    if (!query) {
-      return students;
-    }
+    if (!query) return students;
 
     return students.filter((student) => {
       const fullName =
@@ -52,336 +53,336 @@ export default function StudentList({
     });
   }, [students, searchQuery]);
 
-  // Memorizar el renderizado de cada estudiante.
-  const renderStudent = useCallback(
-    ({ item }: { item: Student }) => (
-      <View style={styles.studentContainer}>
-        <Pressable
-          style={({ pressed }) => [
-            styles.studentCard,
-            pressed && styles.cardPressed,
-          ]}
-          onPress={() => onStudentPress(item)}
-        >
-          <StudentCard
-            student={item}
-            onPress={() => onStudentPress(item)}
-          />
-        </Pressable>
+  const ListHeader = (
+    <View style={styles.listHeader}>
+      <View style={styles.searchContainer}>
+        <SearchBar
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          onClear={() => setSearchQuery('')}
+          placeholder="Buscar estudiante..."
+          debounceMs={300}
+        />
+      </View>
 
-        {onDeleteStudent && (
-          <View style={styles.cardFooter}>
-            <Text style={styles.footerLabel}>
-              ACCIONES
-            </Text>
+      <View style={styles.resultsHeader}>
+        <View>
+          <Text style={[styles.resultsTitle, { color: colors.text }]}>
+            {searchQuery.trim() ? 'Resultados' : 'Lista de estudiantes'}
+          </Text>
 
-            <Pressable
-              style={({ pressed }) => [
-                styles.deleteButton,
-                pressed && styles.deleteButtonPressed,
+          <Text
+            style={[
+              styles.resultsSubtitle,
+              { color: colors.secondary },
+            ]}
+          >
+            {filteredStudents.length === 1
+              ? '1 estudiante encontrado'
+              : `${filteredStudents.length} estudiantes encontrados`}
+          </Text>
+        </View>
+
+        {searchQuery.trim() !== '' && (
+          <Pressable
+            onPress={() => setSearchQuery('')}
+            style={[
+              styles.clearButton,
+              {
+                backgroundColor: `${colors.primary}15`,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.clearButtonText,
+                { color: colors.primary },
               ]}
-              onPress={() => onDeleteStudent(item.id)}
             >
-              <Text style={styles.deleteIcon}>🗑️</Text>
-
-              <Text style={styles.deleteButtonText}>
-                Eliminar estudiante
-              </Text>
-            </Pressable>
-          </View>
+              Limpiar
+            </Text>
+          </Pressable>
         )}
       </View>
-    ),
-    [onStudentPress, onDeleteStudent]
-  );
-
-  // Encabezado integrado en el desplazamiento de FlatList.
-  const ListHeader = useMemo(
-    () => (
-      <View>
-        <View style={styles.header}>
-          <Text style={styles.headerEyebrow}>
-            DIRECTORIO ACADÉMICO
-          </Text>
-
-          <Text style={styles.headerTitle}>
-            Estudiantes
-          </Text>
-
-          <Text style={styles.headerSubtitle}>
-            Consulta y administra los estudiantes registrados.
-          </Text>
-        </View>
-
-        <View style={styles.searchContainer}>
-          <SearchBar
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            onClear={() => setSearchQuery('')}
-            placeholder="Buscar por nombre, apellido o matrícula..."
-            debounceMs={300}
-          />
-        </View>
-
-        <View style={styles.resultsHeader}>
-          <Text style={styles.resultsTitle}>
-            {searchQuery.trim()
-              ? 'Resultados de búsqueda'
-              : 'Directorio de estudiantes'}
-          </Text>
-        </View>
-      </View>
-    ),
-    [searchQuery]
+    </View>
   );
 
   return (
-    <View style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: colors.background },
+      ]}
+    >
       <FlatList
-        style={styles.flatList}
         data={filteredStudents}
-        renderItem={renderStudent}
+        renderItem={({ item }) => (
+          <View
+            style={[
+              styles.studentContainer,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            <Pressable
+              onPress={() => onStudentPress(item)}
+              style={({ pressed }) => [
+                styles.studentCard,
+                pressed && styles.pressed,
+              ]}
+            >
+              <StudentCard
+                student={item}
+                onPress={() => onStudentPress(item)}
+              />
+            </Pressable>
+
+            {onDeleteStudent && (
+              <View
+                style={[
+                  styles.cardFooter,
+                  {
+                    borderTopColor: colors.border,
+                    backgroundColor: colors.card,
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.actionLabel,
+                    { color: colors.secondary },
+                  ]}
+                >
+                  ACCIONES
+                </Text>
+
+                <Pressable
+                  onPress={() => onDeleteStudent(item.id)}
+                  style={({ pressed }) => [
+                    styles.deleteButton,
+                    {
+                      backgroundColor: `${colors.error}12`,
+                      borderColor: `${colors.error}45`,
+                    },
+                    pressed && styles.pressed,
+                  ]}
+                >
+                  <Text style={styles.deleteIcon}>🗑️</Text>
+
+                  <Text
+                    style={[
+                      styles.deleteText,
+                      { color: colors.error },
+                    ]}
+                  >
+                    Eliminar
+                  </Text>
+                </Pressable>
+              </View>
+            )}
+          </View>
+        )}
         keyExtractor={(item) => String(item.id)}
         ListHeaderComponent={ListHeader}
-        contentContainerStyle={styles.listContent}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
-        showsVerticalScrollIndicator={true}
-        nestedScrollEnabled={false}
-        removeClippedSubviews={false}
-        initialNumToRender={10}
-        maxToRenderPerBatch={10}
-        windowSize={7}
         ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <View style={styles.emptyIconContainer}>
+          <View
+            style={[
+              styles.emptyContainer,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            <View
+              style={[
+                styles.emptyIconContainer,
+                {
+                  backgroundColor: `${colors.primary}15`,
+                },
+              ]}
+            >
               <Text style={styles.emptyIcon}>
                 {searchQuery.trim() ? '🔎' : '🎓'}
               </Text>
             </View>
 
-            <Text style={styles.emptyTitle}>
+            <Text
+              style={[
+                styles.emptyTitle,
+                { color: colors.text },
+              ]}
+            >
               {searchQuery.trim()
-                ? 'Sin resultados'
-                : 'No hay estudiantes'}
+                ? 'No se encontraron resultados'
+                : 'No hay estudiantes registrados'}
             </Text>
 
-            <Text style={styles.emptyText}>
+            <Text
+              style={[
+                styles.emptyMessage,
+                { color: colors.secondary },
+              ]}
+            >
               {searchQuery.trim()
-                ? 'No encontramos estudiantes que coincidan con tu búsqueda. Intenta con otro nombre o matrícula.'
-                : 'Todavía no hay estudiantes registrados en el sistema.'}
+                ? 'Prueba con otro nombre o matrícula.'
+                : 'Los estudiantes registrados aparecerán aquí.'}
             </Text>
-
-            {searchQuery.trim() !== '' && (
-              <Pressable
-                style={styles.clearSearchButton}
-                onPress={() => setSearchQuery('')}
-              >
-                <Text style={styles.clearSearchText}>
-                  Limpiar búsqueda
-                </Text>
-              </Pressable>
-            )}
           </View>
         }
+        contentContainerStyle={styles.listContent}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        showsVerticalScrollIndicator={false}
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        windowSize={7}
       />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  // CONTENEDOR PRINCIPAL
   container: {
     flex: 1,
     minHeight: 0,
-    backgroundColor: '#F1F5F9',
-  },
-
-  flatList: {
-    flex: 1,
   },
 
   listContent: {
     flexGrow: 1,
-    paddingBottom: 30,
+    paddingBottom: 20,
   },
 
-  // ENCABEZADO
-  header: {
-    backgroundColor: '#172554',
-    paddingHorizontal: 22,
-    paddingTop: 24,
-    paddingBottom: 26,
-  },
-
-  headerEyebrow: {
-    color: '#93C5FD',
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 1.5,
-    marginBottom: 9,
-  },
-
-  headerTitle: {
-    fontSize: 27,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    marginBottom: 7,
-  },
-
-  headerSubtitle: {
-    fontSize: 13,
-    color: '#BFDBFE',
-    lineHeight: 20,
-  },
-
-  // BUSCADOR
-  searchContainer: {
-    paddingHorizontal: 18,
-    paddingTop: 18,
+  listHeader: {
     paddingBottom: 8,
   },
 
-  // RESULTADOS
+  searchContainer: {
+    paddingHorizontal: 2,
+    paddingTop: 4,
+    paddingBottom: 16,
+  },
+
   resultsHeader: {
-    paddingHorizontal: 20,
-    paddingTop: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 3,
     paddingBottom: 14,
   },
 
   resultsTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#1E293B',
-  },
-
-  // TARJETAS
-  studentContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 15,
-    marginHorizontal: 16,
-    marginBottom: 14,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    elevation: 2,
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-  },
-
-  studentCard: {
-    backgroundColor: '#FFFFFF',
-  },
-
-  cardPressed: {
-    opacity: 0.85,
-  },
-
-  // PIE DE TARJETA
-  cardFooter: {
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-    backgroundColor: '#FAFBFD',
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 10,
-  },
-
-  footerLabel: {
-    fontSize: 10,
-    color: '#94A3B8',
+    fontSize: 16,
     fontWeight: '800',
-    letterSpacing: 1,
   },
 
-  // BOTÓN ELIMINAR
-  deleteButton: {
-    backgroundColor: '#FEF2F2',
-    borderWidth: 1,
-    borderColor: '#FECACA',
-    paddingVertical: 9,
+  resultsSubtitle: {
+    fontSize: 12,
+    marginTop: 4,
+  },
+
+  clearButton: {
     paddingHorizontal: 13,
-    borderRadius: 9,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 7,
+    paddingVertical: 8,
+    borderRadius: 8,
   },
 
-  deleteIcon: {
-    fontSize: 13,
-  },
-
-  deleteButtonText: {
-    color: '#DC2626',
+  clearButtonText: {
     fontSize: 12,
     fontWeight: '700',
   },
 
-  deleteButtonPressed: {
-    backgroundColor: '#FEE2E2',
-    opacity: 0.8,
+  studentContainer: {
+    marginBottom: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    overflow: 'hidden',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
   },
 
-  // ESTADO VACÍO
+  studentCard: {
+    padding: 0,
+  },
+
+  pressed: {
+    opacity: 0.75,
+  },
+
+  cardFooter: {
+    minHeight: 48,
+    borderTopWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+
+  actionLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1,
+  },
+
+  deleteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+
+  deleteIcon: {
+    fontSize: 12,
+  },
+
+  deleteText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    paddingHorizontal: 25,
-    paddingVertical: 40,
-    marginHorizontal: 16,
-    marginTop: 10,
+    marginTop: 8,
+    paddingHorizontal: 24,
+    paddingVertical: 35,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
   },
 
   emptyIconContainer: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: '#EFF6FF',
-    justifyContent: 'center',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     alignItems: 'center',
-    marginBottom: 17,
+    justifyContent: 'center',
+    marginBottom: 15,
   },
 
   emptyIcon: {
-    fontSize: 29,
+    fontSize: 26,
   },
 
   emptyTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '800',
-    color: '#1E293B',
-    marginBottom: 8,
-  },
-
-  emptyText: {
-    fontSize: 13,
-    color: '#64748B',
     textAlign: 'center',
-    lineHeight: 21,
-    maxWidth: 320,
   },
 
-  clearSearchButton: {
-    backgroundColor: '#EFF6FF',
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 9,
-    marginTop: 18,
-  },
-
-  clearSearchText: {
-    color: '#2563EB',
+  emptyMessage: {
     fontSize: 13,
-    fontWeight: '700',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginTop: 7,
   },
 });

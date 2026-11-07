@@ -1,11 +1,14 @@
+
 /**
  * Formulario reutilizable para crear y editar estudiantes.
  * Compatible con Web, Android e iOS.
+ * Adaptable a modo claro y oscuro.
  */
 
 import { useCallback, useEffect, useState } from 'react';
 import {
     Keyboard,
+    ScrollView,
     StyleSheet,
     Text,
     TextInput,
@@ -13,6 +16,7 @@ import {
     View,
 } from 'react-native';
 
+import { useTheme } from '../context/ThemeContext';
 import type { Student } from '../types/student';
 
 interface StudentFormProps {
@@ -30,6 +34,9 @@ export default function StudentForm({
   onSubmit,
   onCancel,
 }: StudentFormProps) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
+
   const [nombre, setNombre] = useState(student?.nombre || '');
   const [apellido, setApellido] = useState(student?.apellido || '');
   const [matricula, setMatricula] = useState(student?.matricula || '');
@@ -43,9 +50,11 @@ export default function StudentForm({
   const isEditing = Boolean(student);
 
   const handleSubmit = async () => {
+    if (submitting) return;
+
     setError('');
 
-    // Validar campos vacíos.
+    // Validar campos obligatorios.
     if (
       !nombre.trim() ||
       !apellido.trim() ||
@@ -56,7 +65,7 @@ export default function StudentForm({
       return;
     }
 
-    // Validar que nombre y apellido contengan texto válido.
+    // Validar nombre y apellido.
     const nameRegex = /^[\p{L}\s'-]+$/u;
 
     if (!nameRegex.test(nombre.trim())) {
@@ -83,13 +92,11 @@ export default function StudentForm({
       return;
     }
 
-    // Si se proporciona una contraseña, validar su longitud.
+    // Validar longitud de contraseña.
     if (password.trim() && password.length < 8) {
       setError('La contraseña debe tener al menos 8 caracteres.');
       return;
     }
-
-    if (submitting) return;
 
     setSubmitting(true);
 
@@ -133,231 +140,323 @@ export default function StudentForm({
     setError('');
   }, []);
 
-    useEffect(() => {
-        if (student) {
-            setNombre(student.nombre || '');
-            setApellido(student.apellido || '');
-            setMatricula(student.matricula || '');
-            setEmail(student.email || '');
-        } else {
-            resetForm();
-        }
+  // Actualizar campos cuando cambia el estudiante.
+  useEffect(() => {
+    if (student) {
+      setNombre(student.nombre || '');
+      setApellido(student.apellido || '');
+      setMatricula(student.matricula || '');
+      setEmail(student.email || '');
+    } else {
+      resetForm();
+    }
 
-        setPassword('');
-        setShowPassword(false);
-        setError('');
-    }, [student?.id, resetForm]); //De esta manera, el formulario se actualiza cuando cambia el estudiante seleccionado, no simplemente porque se creó una nueva referencia del objeto.
+    setPassword('');
+    setShowPassword(false);
+    setError('');
+  }, [student?.id, resetForm]);
 
   return (
-    <View style={styles.container}>
-      <TextInput
-        style={styles.input}
-        placeholder="Nombre"
-        value={nombre}
-        onChangeText={setNombre}
-        editable={!submitting}
-        autoCapitalize="words"
-      />
+    <ScrollView
+      style={styles.scroll}
+      contentContainerStyle={styles.scrollContent}
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
+    >
+      <View style={styles.container}>
+        {/* NOMBRE */}
+        <Text style={styles.label}>Nombre</Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Apellido"
-        value={apellido}
-        onChangeText={setApellido}
-        editable={!submitting}
-        autoCapitalize="words"
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="Matrícula"
-        value={matricula}
-        onChangeText={setMatricula}
-        editable={!submitting}
-        autoCapitalize="characters"
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="Correo electrónico"
-        value={email}
-        onChangeText={setEmail}
-        editable={!submitting}
-        keyboardType="email-address"
-        autoCapitalize="none"
-      />
-
-      {/* Campo de contraseña con mostrar y ocultar */}
-      <View style={styles.passwordContainer}>
         <TextInput
-          style={styles.passwordInput}
-          placeholder={
-            isEditing
-              ? 'Nueva contraseña (opcional)'
-              : 'Contraseña'
-          }
-          value={password}
-          onChangeText={setPassword}
+          style={styles.input}
+          placeholder="Ingresa el nombre"
+          placeholderTextColor={colors.secondary}
+          value={nombre}
+          onChangeText={setNombre}
           editable={!submitting}
-          secureTextEntry={!showPassword}
-          autoCapitalize="none"
-          autoCorrect={false}
+          autoCapitalize="words"
+          returnKeyType="next"
         />
 
-        <TouchableOpacity
-          style={styles.showPasswordButton}
-          onPress={() => setShowPassword((previous) => !previous)}
-          disabled={submitting}
-          accessibilityRole="button"
-          accessibilityLabel={
-            showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'
-          }
-        >
-          <Text style={styles.showPasswordText}>
-            {showPassword ? 'Ocultar' : 'Mostrar'}
-          </Text>
-        </TouchableOpacity>
-      </View>
+        {/* APELLIDO */}
+        <Text style={styles.label}>Apellido</Text>
 
-      {/* Mensaje de validación */}
-      {error !== '' && (
-        <Text style={styles.error}>
-          {error}
+        <TextInput
+          style={styles.input}
+          placeholder="Ingresa el apellido"
+          placeholderTextColor={colors.secondary}
+          value={apellido}
+          onChangeText={setApellido}
+          editable={!submitting}
+          autoCapitalize="words"
+          returnKeyType="next"
+        />
+
+        {/* MATRÍCULA */}
+        <Text style={styles.label}>Matrícula</Text>
+
+        <TextInput
+          style={styles.input}
+          placeholder="Ingresa la matrícula"
+          placeholderTextColor={colors.secondary}
+          value={matricula}
+          onChangeText={setMatricula}
+          editable={!submitting}
+          autoCapitalize="characters"
+          returnKeyType="next"
+        />
+
+        {/* CORREO */}
+        <Text style={styles.label}>Correo electrónico</Text>
+
+        <TextInput
+          style={styles.input}
+          placeholder="ejemplo@correo.com"
+          placeholderTextColor={colors.secondary}
+          value={email}
+          onChangeText={setEmail}
+          editable={!submitting}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoCorrect={false}
+          returnKeyType="next"
+        />
+
+        {/* CONTRASEÑA */}
+        <Text style={styles.label}>
+          {isEditing
+            ? 'Nueva contraseña (opcional)'
+            : 'Contraseña'}
         </Text>
-      )}
 
-      <View style={styles.buttons}>
-        <TouchableOpacity
-          style={[
-            styles.cancelButton,
-            submitting && styles.buttonDisabled,
-          ]}
-          onPress={onCancel}
-          disabled={submitting}
-        >
-          <Text style={styles.cancelText}>
-            Cancelar
-          </Text>
-        </TouchableOpacity>
+        <View style={styles.passwordContainer}>
+          <TextInput
+            style={styles.passwordInput}
+            placeholder={
+              isEditing
+                ? 'Dejar vacío para conservar la actual'
+                : 'Ingresa una contraseña'
+            }
+            placeholderTextColor={colors.secondary}
+            value={password}
+            onChangeText={setPassword}
+            editable={!submitting}
+            secureTextEntry={!showPassword}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
 
-        <TouchableOpacity
-          style={[
-            styles.submitButton,
-            submitting && styles.submitButtonDisabled,
-          ]}
-          onPress={handleSubmit}
-          disabled={submitting}
-        >
-          <Text style={styles.submitText}>
-            {submitting
-              ? 'Guardando...'
-              : isEditing
-                ? 'Actualizar'
-                : 'Crear'}
-          </Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.showPasswordButton}
+            onPress={() => setShowPassword((previous) => !previous)}
+            disabled={submitting}
+            accessibilityRole="button"
+            accessibilityLabel={
+              showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'
+            }
+          >
+            <Text style={styles.showPasswordText}>
+              {showPassword ? 'Ocultar' : 'Mostrar'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* MENSAJE DE ERROR */}
+        {error !== '' && (
+          <View style={styles.errorContainer}>
+            <Text style={styles.error}>
+              {error}
+            </Text>
+          </View>
+        )}
+
+        {/* BOTONES */}
+        <View style={styles.buttons}>
+          <TouchableOpacity
+            style={[
+              styles.cancelButton,
+              submitting && styles.buttonDisabled,
+            ]}
+            onPress={onCancel}
+            disabled={submitting}
+            accessibilityRole="button"
+          >
+            <Text style={styles.cancelText}>
+              Cancelar
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.submitButton,
+              submitting && styles.submitButtonDisabled,
+            ]}
+            onPress={handleSubmit}
+            disabled={submitting}
+            accessibilityRole="button"
+          >
+            <Text style={styles.submitText}>
+              {submitting
+                ? 'Guardando...'
+                : isEditing
+                  ? 'Actualizar'
+                  : 'Crear'}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: '#FFFFFF',
-    padding: 20,
-    borderRadius: 12,
-    margin: 16,
-  },
+// ESTILOS DINÁMICOS SEGÚN EL TEMA.
+function createStyles(
+  colors: ReturnType<typeof useTheme>['colors']
+) {
+  return StyleSheet.create({
+    scroll: {
+      width: '100%',
+      flexGrow: 0,
+    },
 
-  input: {
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
-    fontSize: 16,
-    color: '#111827',
-    backgroundColor: '#FFFFFF',
-  },
+    scrollContent: {
+      flexGrow: 1,
+      paddingBottom: 12,
+    },
 
-  passwordContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 8,
-    marginBottom: 16,
-    backgroundColor: '#FFFFFF',
-  },
+    container: {
+      width: '100%',
+      backgroundColor: colors.card,
+      paddingHorizontal: 4,
+      paddingTop: 8,
+      paddingBottom: 8,
+      borderRadius: 12,
+    },
 
-  passwordInput: {
-    flex: 1,
-    padding: 12,
-    fontSize: 16,
-    color: '#111827',
-    minWidth: 0,
-  },
+    label: {
+      color: colors.text,
+      fontSize: 13,
+      fontWeight: '700',
+      marginBottom: 7,
+    },
 
-  showPasswordButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-  },
+    input: {
+      width: '100%',
+      minHeight: 48,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 10,
+      paddingHorizontal: 13,
+      paddingVertical: 12,
+      marginBottom: 15,
+      fontSize: 15,
+      color: colors.text,
+      backgroundColor: colors.background,
+    },
 
-  showPasswordText: {
-    color: '#3B82F6',
-    fontSize: 14,
-    fontWeight: '600',
-  },
+    passwordContainer: {
+      width: '100%',
+      minHeight: 48,
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 10,
+      marginBottom: 16,
+      backgroundColor: colors.background,
+      overflow: 'hidden',
+    },
 
-  error: {
-    color: '#DC2626',
-    fontSize: 14,
-    marginBottom: 12,
-    textAlign: 'center',
-  },
+    passwordInput: {
+      flex: 1,
+      minWidth: 0,
+      minHeight: 48,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      fontSize: 14,
+      color: colors.text,
+    },
 
-  buttons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 8,
-  },
+    showPasswordButton: {
+      paddingHorizontal: 12,
+      paddingVertical: 14,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
 
-  cancelButton: {
-    flex: 1,
-    padding: 14,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    marginRight: 8,
-    alignItems: 'center',
-  },
+    showPasswordText: {
+      color: colors.primary,
+      fontSize: 13,
+      fontWeight: '700',
+    },
 
-  cancelText: {
-    color: '#6B7280',
-    fontSize: 16,
-    fontWeight: '600',
-  },
+    errorContainer: {
+      backgroundColor: colors.background,
+      borderWidth: 1,
+      borderColor: colors.error,
+      borderRadius: 9,
+      padding: 12,
+      marginBottom: 14,
+    },
 
-  submitButton: {
-    flex: 1,
-    padding: 14,
-    borderRadius: 8,
-    backgroundColor: '#3B82F6',
-    marginLeft: 8,
-    alignItems: 'center',
-  },
+    error: {
+      color: colors.error,
+      fontSize: 13,
+      textAlign: 'center',
+      fontWeight: '500',
+    },
 
-  submitButtonDisabled: {
-    backgroundColor: '#9CA3AF',
-  },
+    buttons: {
+      width: '100%',
+      flexDirection: 'row',
+      alignItems: 'stretch',
+      justifyContent: 'space-between',
+      marginTop: 8,
+      gap: 10,
+    },
 
-  buttonDisabled: {
-    opacity: 0.5,
-  },
+    cancelButton: {
+      flex: 1,
+      minHeight: 48,
+      paddingHorizontal: 8,
+      paddingVertical: 12,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.background,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
 
-  submitText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});
+    cancelText: {
+      color: colors.text,
+      fontSize: 14,
+      fontWeight: '700',
+    },
+
+    submitButton: {
+      flex: 1,
+      minHeight: 48,
+      paddingHorizontal: 8,
+      paddingVertical: 12,
+      borderRadius: 10,
+      backgroundColor: colors.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+
+    submitButtonDisabled: {
+      opacity: 0.6,
+    },
+
+    buttonDisabled: {
+      opacity: 0.5,
+    },
+
+    submitText: {
+      color: '#FFFFFF',
+      fontSize: 14,
+      fontWeight: '700',
+    },
+  });
+}

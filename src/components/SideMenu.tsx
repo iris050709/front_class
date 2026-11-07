@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import { useSelector } from "react-redux";
 
+import { useTheme } from "../context/ThemeContext";
 import { useAuth } from "../hooks/useAuth";
 import { SideMenuProps } from "../interfaces/menu.interface";
 import { RootState } from "../store/store";
@@ -21,6 +22,9 @@ export default function SideMenu({
 }: SideMenuProps) {
   const router = useRouter();
   const { logout } = useAuth();
+  const { colors, theme } = useTheme();
+
+  const isDark = theme === "dark";
 
   const user = useSelector(
     (state: RootState) => state.auth.user
@@ -56,7 +60,14 @@ export default function SideMenu({
 
   return (
     <View style={styles.overlay}>
-      <View style={styles.menu}>
+      {/* MENÚ LATERAL */}
+      <View
+        style={[
+          styles.menu,
+          { backgroundColor: colors.background },
+        ]}
+      >
+        {/* ENCABEZADO */}
         <View style={styles.header}>
           <View style={styles.headerDecoration} />
 
@@ -76,10 +87,13 @@ export default function SideMenu({
             </TouchableOpacity>
           </View>
 
+          {/* INFORMACIÓN DEL USUARIO */}
           <View style={styles.userInfo}>
             <View style={styles.avatarBorder}>
               <View style={styles.avatar}>
-                <Text style={styles.avatarText}>{initial}</Text>
+                <Text style={styles.avatarText}>
+                  {initial}
+                </Text>
               </View>
 
               <View style={styles.onlineIndicator} />
@@ -101,8 +115,14 @@ export default function SideMenu({
           </View>
         </View>
 
+        {/* NAVEGACIÓN */}
         <View style={styles.navigation}>
-          <Text style={styles.sectionLabel}>
+          <Text
+            style={[
+              styles.sectionLabel,
+              { color: colors.secondary },
+            ]}
+          >
             MENÚ PRINCIPAL
           </Text>
 
@@ -119,7 +139,9 @@ export default function SideMenu({
               <MenuItem
                 title="Estudiantes"
                 icon="👥"
-                onPress={() => navigate("/(tabs)/students")}
+                onPress={() =>
+                  navigate("/(tabs)/students")
+                }
               />
             </View>
           )}
@@ -134,7 +156,7 @@ export default function SideMenu({
                 if (onProfile) {
                   onProfile();
                 } else {
-                  navigate("/(tabs)/profile");
+                  router.push("/(tabs)/profile");
                 }
               }}
             />
@@ -143,9 +165,16 @@ export default function SideMenu({
 
         <View style={styles.spacer} />
 
+        {/* PIE DEL MENÚ */}
         <View style={styles.footer}>
-          <View style={styles.footerDivider} />
+          <View
+            style={[
+              styles.footerDivider,
+              { backgroundColor: colors.border },
+            ]}
+          />
 
+          {/* CERRAR SESIÓN */}
           <TouchableOpacity
             style={styles.logout}
             onPress={handleLogout}
@@ -168,12 +197,18 @@ export default function SideMenu({
             <Text style={styles.logoutArrow}>›</Text>
           </TouchableOpacity>
 
-          <Text style={styles.footerText}>
+          <Text
+            style={[
+              styles.footerText,
+              { color: colors.secondary },
+            ]}
+          >
             TU ESPACIO PERSONAL
           </Text>
         </View>
       </View>
 
+      {/* FONDO PARA CERRAR EL MENÚ */}
       <TouchableOpacity
         style={styles.background}
         onPress={onClose}
@@ -195,11 +230,11 @@ const styles = StyleSheet.create({
     zIndex: 1000,
     backgroundColor: "transparent",
   },
+
   menu: {
     width: "82%",
     maxWidth: 360,
     height: "100%",
-    backgroundColor: "#FFFFFF",
     paddingBottom: 15,
     elevation: 15,
     shadowColor: "#17243A",
@@ -207,6 +242,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.16,
     shadowRadius: 12,
   },
+
   header: {
     backgroundColor: "#2868D7",
     paddingTop: 48,
@@ -214,6 +250,7 @@ const styles = StyleSheet.create({
     paddingBottom: 25,
     overflow: "hidden",
   },
+
   headerDecoration: {
     position: "absolute",
     width: 190,
@@ -224,11 +261,13 @@ const styles = StyleSheet.create({
     top: -105,
     right: -55,
   },
+
   headerTop: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 28,
   },
+
   brandIcon: {
     width: 35,
     height: 35,
@@ -240,17 +279,20 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.25)",
   },
+
   brandIconText: {
     color: "#FFFFFF",
     fontSize: 19,
     fontWeight: "900",
   },
+
   brandName: {
     flex: 1,
     color: "#FFFFFF",
     fontSize: 17,
     fontWeight: "800",
   },
+
   closeButton: {
     width: 34,
     height: 34,
@@ -259,15 +301,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+
   closeButtonText: {
     color: "#FFFFFF",
     fontSize: 27,
     lineHeight: 30,
     marginTop: -2,
   },
+
   userInfo: {
     alignItems: "center",
   },
+
   avatarBorder: {
     width: 86,
     height: 86,
@@ -278,6 +323,7 @@ const styles = StyleSheet.create({
     marginBottom: 13,
     position: "relative",
   },
+
   avatar: {
     flex: 1,
     borderRadius: 40,
@@ -285,11 +331,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+
   avatarText: {
     color: "#2868D7",
     fontSize: 32,
     fontWeight: "900",
   },
+
   onlineIndicator: {
     position: "absolute",
     right: 0,
@@ -301,6 +349,7 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: "#2868D7",
   },
+
   name: {
     color: "#FFFFFF",
     fontSize: 19,
@@ -308,12 +357,14 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 5,
   },
+
   email: {
     color: "#DCE8FF",
     fontSize: 12,
     textAlign: "center",
     marginBottom: 12,
   },
+
   accountBadge: {
     backgroundColor: "rgba(255,255,255,0.16)",
     borderRadius: 20,
@@ -322,40 +373,46 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.20)",
   },
+
   accountBadgeText: {
     color: "#FFFFFF",
     fontSize: 11,
     fontWeight: "700",
   },
+
   navigation: {
     paddingHorizontal: 16,
     paddingTop: 27,
   },
+
   sectionLabel: {
-    color: "#94A3B8",
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 1.5,
     marginLeft: 8,
     marginBottom: 15,
   },
+
   menuItemWrapper: {
     marginBottom: 9,
     borderRadius: 15,
     overflow: "hidden",
   },
+
   spacer: {
     flex: 1,
     minHeight: 20,
   },
+
   footer: {
     paddingHorizontal: 16,
   },
+
   footerDivider: {
     height: 1,
-    backgroundColor: "#E8EDF4",
     marginBottom: 15,
   },
+
   logout: {
     flexDirection: "row",
     alignItems: "center",
@@ -366,6 +423,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 13,
   },
+
   logoutIconContainer: {
     width: 43,
     height: 43,
@@ -375,37 +433,43 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginRight: 12,
   },
+
   logoutIcon: {
     color: "#D93650",
     fontSize: 27,
     fontWeight: "700",
   },
+
   logoutInfo: {
     flex: 1,
   },
+
   logoutText: {
     color: "#C92F48",
     fontSize: 14,
     fontWeight: "800",
     marginBottom: 4,
   },
+
   logoutSubtitle: {
     color: "#9F6670",
     fontSize: 11,
   },
+
   logoutArrow: {
     color: "#D93650",
     fontSize: 26,
     marginLeft: 5,
   },
+
   footerText: {
-    color: "#A0AABA",
     fontSize: 9,
     textAlign: "center",
     letterSpacing: 1.5,
     fontWeight: "700",
     marginTop: 17,
   },
+
   background: {
     flex: 1,
     backgroundColor: "rgba(23, 36, 58, 0.35)",
