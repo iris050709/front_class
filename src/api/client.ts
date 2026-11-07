@@ -8,6 +8,7 @@ import { clearTokens, getAccessToken, getRefreshToken, saveAccessToken, saveRefr
 
 // URL base del backend - cambiar según tu configuración
 const API_BASE_URL = 'http://localhost:3000';
+//const API_BASE_URL = 'http://192.168.1.78:3000';
 
 // Instancia de Axios configurada
 const apiClient: AxiosInstance = axios.create({
