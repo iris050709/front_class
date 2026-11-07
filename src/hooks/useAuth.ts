@@ -1,9 +1,10 @@
 
 import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { useDispatch } from 'react-redux';
+import { useCallback, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 
 import {
+  createAdmin as apiCreateAdmin,
   login as apiLogin,
   logout as apiLogout,
   register as apiRegister,
@@ -12,9 +13,14 @@ import {
   RegisterRequest,
 } from '../api/auth.api';
 
-import { setUser as setReduxUser, setToken } from '../store/store';
+import {
+  AppDispatch,
+  RootState,
+  setToken,
+  setUser,
+} from '../store/store';
+
 import { ApiError, ErrorType } from '../types/errors';
-import { User } from '../types/user';
 
 import {
   clearTokens,
@@ -24,86 +30,68 @@ import {
 } from '../utils/storage';
 
 interface UseAuthReturn {
-  user: User | null;
+  user: RootState['auth']['user'];
   loading: boolean;
   error: ApiError | null;
   isAuthenticated: boolean;
   login: (credentials: LoginRequest) => Promise<boolean>;
   register: (data: RegisterRequest) => Promise<boolean>;
+  createAdmin: (data: RegisterRequest) => Promise<boolean>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
   clearError: () => void;
 }
 
 export const useAuth = (): UseAuthReturn => {
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
 
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Redux es la única fuente de información del usuario.
+  const user = useSelector(
+    (state: RootState) => state.auth.user
+  );
+
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
 
-  const mountedRef = useRef(false);
   const clearError = useCallback(() => {
     setError(null);
   }, []);
 
-  // Verificar sesión existente
+  // Verificar sesión únicamente cuando se solicite manualmente.
+  // La recuperación automática corresponde a AppInitializer.
   const checkAuth = useCallback(async () => {
     try {
       setLoading(true);
 
       const token = await getAccessToken();
 
-      if (!mountedRef.current) return;
-
-      if (token) {
-        const profile = await getCurrentUser();
-
-        if (!mountedRef.current) return;
-
-        setUser(profile);
-        dispatch(setReduxUser(profile));
-        dispatch(setToken(token));
-      } else {
-        setUser(null);
-        dispatch(setReduxUser(null));
+      if (!token) {
+        dispatch(setUser(null));
         dispatch(setToken(null));
+        return;
       }
-    } catch (err) {
-      if (!mountedRef.current) return;
 
+      const profile = await getCurrentUser();
+
+      dispatch(setUser(profile));
+      dispatch(setToken(token));
+
+    } catch (err) {
       console.error('Error verificando autenticación:', err);
 
-      await clearTokens();
-
-      if (!mountedRef.current) return;
-
-      setUser(null);
-      dispatch(setReduxUser(null));
-      dispatch(setToken(null));
-    } finally {
-      if (mountedRef.current) {
-        setLoading(false);
+      try {
+        await clearTokens();
+      } finally {
+        dispatch(setUser(null));
+        dispatch(setToken(null));
       }
+    } finally {
+      setLoading(false);
     }
   }, [dispatch]);
 
-  useEffect(() => {
-    mountedRef.current = true;
-
-    checkAuth();
-
-    return () => {
-      mountedRef.current = false;
-    };
-  }, [checkAuth]);
-
-  /**
-   * Esta modificación evita actualizar estados locales después del desmontaje. No cancela realmente las peticiones HTTP; simplemente ignora sus resultados. Además, el mountedRef debe utilizarse con cuidado si el hook se consume desde varios componentes simultáneamente, porque cada instancia tendrá su propia referencia.
-   */
-
-  // Iniciar sesión
+  // Iniciar sesión.
   const login = useCallback(
     async (credentials: LoginRequest): Promise<boolean> => {
       try {
@@ -112,26 +100,34 @@ export const useAuth = (): UseAuthReturn => {
 
         const response = await apiLogin(credentials);
 
-        await saveAccessToken(response.accessToken);
-
-        if (response.refreshToken) {
-          await saveRefreshToken(response.refreshToken);
+        if (!response.accessToken || !response.refreshToken) {
+          throw new Error('La API no devolvió los tokens necesarios');
         }
 
-        setUser(response.user);
+        await saveAccessToken(response.accessToken);
+        await saveRefreshToken(response.refreshToken);
 
-        dispatch(setReduxUser(response.user));
+        dispatch(setUser(response.user));
         dispatch(setToken(response.accessToken));
 
         return true;
+
       } catch (err) {
+        console.error('Error iniciando sesión:', err);
+
         const apiError =
           err instanceof ApiError
             ? err
-            : new ApiError(ErrorType.UNKNOWN, 'Error en login');
+            : new ApiError(
+                ErrorType.UNKNOWN,
+                err instanceof Error
+                  ? err.message
+                  : 'Error en el inicio de sesión'
+              );
 
         setError(apiError);
         return false;
+
       } finally {
         setLoading(false);
       }
@@ -139,7 +135,7 @@ export const useAuth = (): UseAuthReturn => {
     [dispatch]
   );
 
-  // Registrar usuario e iniciar sesión
+  // Registrar usuario e iniciar sesión.
   const register = useCallback(
     async (data: RegisterRequest): Promise<boolean> => {
       try {
@@ -153,29 +149,34 @@ export const useAuth = (): UseAuthReturn => {
           password: data.password,
         });
 
-        await saveAccessToken(response.accessToken);
-
-        if (response.refreshToken) {
-          await saveRefreshToken(response.refreshToken);
+        if (!response.accessToken || !response.refreshToken) {
+          throw new Error('La API no devolvió los tokens necesarios');
         }
 
-        setUser(response.user);
+        await saveAccessToken(response.accessToken);
+        await saveRefreshToken(response.refreshToken);
 
-        dispatch(setReduxUser(response.user));
+        dispatch(setUser(response.user));
         dispatch(setToken(response.accessToken));
 
         return true;
+
       } catch (err) {
+        console.error('Error al registrar:', err);
+
         const apiError =
           err instanceof ApiError
             ? err
             : new ApiError(
                 ErrorType.UNKNOWN,
-                'Error al registrar e iniciar sesión'
+                err instanceof Error
+                  ? err.message
+                  : 'Error al registrar e iniciar sesión'
               );
 
         setError(apiError);
         return false;
+
       } finally {
         setLoading(false);
       }
@@ -183,21 +184,56 @@ export const useAuth = (): UseAuthReturn => {
     [dispatch]
   );
 
-  // Cerrar sesión
-  const logout = useCallback(async () => {
+  const createAdmin = useCallback(
+    async (data: RegisterRequest): Promise<boolean> => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        await apiCreateAdmin(data);
+
+        return true;
+      } catch (err) {
+        console.error('Error creando administrador:', err);
+
+        const apiError = err instanceof ApiError
+          ? err
+          : new ApiError(
+              ErrorType.UNKNOWN,
+              err instanceof Error
+                ? err.message
+                : 'Error al crear administrador'
+            );
+
+        setError(apiError);
+        return false;
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
+  // Cerrar sesión.
+  const logout = useCallback(async (): Promise<void> => {
     try {
+      // Intentar cerrar la sesión también en el backend.
       await apiLogout();
     } catch (err) {
-      console.error('Error en logout:', err);
+      console.error('Error cerrando sesión en el servidor:', err);
     } finally {
-      await clearTokens();
-
-      setUser(null);
+      // Limpiar primero el estado de autenticación.
+      dispatch(setUser(null));
+      dispatch(setToken(null));
       setError(null);
 
-      dispatch(setReduxUser(null));
-      dispatch(setToken(null));
+      try {
+        await clearTokens();
+      } catch (err) {
+        console.error('Error eliminando tokens:', err);
+      }
 
+      // Volver al login.
       router.replace('/');
     }
   }, [dispatch, router]);
@@ -209,6 +245,7 @@ export const useAuth = (): UseAuthReturn => {
     isAuthenticated: !!user,
     login,
     register,
+    createAdmin,
     logout,
     checkAuth,
     clearError,

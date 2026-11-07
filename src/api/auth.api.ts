@@ -46,6 +46,17 @@ export async function register(
   return response.data;
 }
 
+export async function createAdmin(
+  data: RegisterRequest
+): Promise<{ user: User }> {
+  const response = await apiClient.post<{ user: User }>(
+    "/api/auth/users",
+    data
+  );
+
+  return response.data;
+}
+
 export async function getCurrentUser(): Promise<User> {
   const response = await apiClient.get<UserMeResponse>(
     "/api/auth/me"
@@ -65,14 +76,14 @@ export async function refreshToken(
   return response.data;
 }
 
+
 export async function logout(): Promise<void> {
   const refreshToken = await getRefreshToken();
 
-  if (!refreshToken) {
-    return;
+  if (refreshToken) {
+    await apiClient.post('/api/auth/logout', {
+      refreshToken,
+    });
   }
-
-  await apiClient.post("/api/auth/logout", {
-    refreshToken,
-  });
 }
+

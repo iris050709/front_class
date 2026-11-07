@@ -5,7 +5,6 @@ import {
     TouchableOpacity,
     View
 } from "react-native";
-import SideMenu from "../components/SideMenu";
 export default function HomeScreen() {
     const [menuOpen, setMenuOpen] = useState(false);
     return (
@@ -43,12 +42,6 @@ export default function HomeScreen() {
                 </Text>
             </View>
 
-            <SideMenu
-                visible={menuOpen}
-                onClose={() =>
-                    setMenuOpen(false)
-                }
-            />
         </View>
     );
 }

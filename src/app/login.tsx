@@ -18,7 +18,7 @@ export default function LoginScreen() {
   const handleLogin = async (email: string, password: string) => {
     const success = await login(email, password);
     if (success) {
-      router.replace('/(tabs)');
+      router.replace('/(tabs)/home');
     } else {
       showError('Error', 'No se pudo iniciar sesion');
     }

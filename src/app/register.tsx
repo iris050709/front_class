@@ -1,17 +1,25 @@
+
 /**
  * Pantalla de registro
  */
 
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Keyboard, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import {
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from 'react-native';
+
 import { useNotification } from '../context/NotificationContext';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../hooks/useAuth';
 
 export default function RegisterScreen() {
   const router = useRouter();
-  const { register, loading } = useAuth();
+  const { register, loading, error } = useAuth();
   const { showSuccess, showError } = useNotification();
   const { colors } = useTheme();
 
@@ -20,7 +28,9 @@ export default function RegisterScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
 
   const handleRegister = async () => {
-    if (!email || !password || !confirmPassword) {
+    const cleanEmail = email.trim().toLowerCase();
+
+    if (!cleanEmail || !password || !confirmPassword) {
       showError('Error', 'Todos los campos son obligatorios');
       return;
     }
@@ -30,63 +40,103 @@ export default function RegisterScreen() {
       return;
     }
 
-    const success = await register(email, password);
+    const success = await register({
+        email: cleanEmail,
+        password,
+    });
+
     if (success) {
-      showSuccess('Exito', 'Cuenta creada correctamente');
-      router.replace('/(tabs)');
+      showSuccess('Éxito', 'Cuenta creada correctamente');
+      router.replace('/(tabs)/home');
+    } else {
+      showError(
+        'Error al registrar',
+        error?.message ?? 'No fue posible crear la cuenta'
+      );
     }
   };
 
   return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <Text style={[styles.title, { color: colors.text }]}>Crear cuenta</Text>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <Text style={[styles.title, { color: colors.text }]}>
+        Crear cuenta
+      </Text>
 
-        <TextInput
-          style={[styles.input, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
-          placeholder="Email"
-          placeholderTextColor={colors.secondary}
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          keyboardType="email-address"
-        />
+      <TextInput
+        style={[
+          styles.input,
+          {
+            backgroundColor: colors.card,
+            color: colors.text,
+            borderColor: colors.border,
+          },
+        ]}
+        placeholder="Correo electrónico"
+        placeholderTextColor={colors.secondary}
+        value={email}
+        onChangeText={setEmail}
+        autoCapitalize="none"
+        keyboardType="email-address"
+        autoCorrect={false}
+        editable={!loading}
+      />
 
-        <TextInput
-          style={[styles.input, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
-          placeholder="Password"
-          placeholderTextColor={colors.secondary}
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-        />
+      <TextInput
+        style={[
+          styles.input,
+          {
+            backgroundColor: colors.card,
+            color: colors.text,
+            borderColor: colors.border,
+          },
+        ]}
+        placeholder="Contraseña"
+        placeholderTextColor={colors.secondary}
+        value={password}
+        onChangeText={setPassword}
+        secureTextEntry
+        editable={!loading}
+      />
 
-        <TextInput
-          style={[styles.input, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
-          placeholder="Confirmar password"
-          placeholderTextColor={colors.secondary}
-          value={confirmPassword}
-          onChangeText={setConfirmPassword}
-          secureTextEntry
-        />
+      <TextInput
+        style={[
+          styles.input,
+          {
+            backgroundColor: colors.card,
+            color: colors.text,
+            borderColor: colors.border,
+          },
+        ]}
+        placeholder="Confirmar contraseña"
+        placeholderTextColor={colors.secondary}
+        value={confirmPassword}
+        onChangeText={setConfirmPassword}
+        secureTextEntry
+        editable={!loading}
+      />
 
-        <TouchableOpacity
-          style={[styles.button, { backgroundColor: colors.primary }]}
-          onPress={handleRegister}
-          disabled={loading}
-        >
-          <Text style={styles.buttonText}>
-            {loading ? 'Creando...' : 'Crear cuenta'}
-          </Text>
-        </TouchableOpacity>
+      <TouchableOpacity
+        style={[
+          styles.button,
+          { backgroundColor: colors.primary },
+        ]}
+        onPress={handleRegister}
+        disabled={loading}
+      >
+        <Text style={styles.buttonText}>
+          {loading ? 'Creando...' : 'Crear cuenta'}
+        </Text>
+      </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => router.push('/login')}>
-          <Text style={[styles.link, { color: colors.primary }]}>
-            ¿Ya tienes cuenta? Inicia sesion
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </TouchableWithoutFeedback>
+      <TouchableOpacity
+        onPress={() => router.replace('/')}
+        disabled={loading}
+      >
+        <Text style={[styles.link, { color: colors.primary }]}>
+          ¿Ya tienes cuenta? Inicia sesión
+        </Text>
+      </TouchableOpacity>
+    </View>
   );
 }
 

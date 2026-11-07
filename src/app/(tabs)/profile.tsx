@@ -2,28 +2,41 @@
  * Pantalla de perfil de usuario
  */
 
-import { useRouter } from 'expo-router';
-import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+
+import { Alert, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../hooks/useAuth';
 
 export default function ProfileScreen() {
-  const router = useRouter();
   const { colors, theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
+    if (Platform.OS === 'web') {
+      const confirmed = window.confirm(
+        '¿Estás seguro de que deseas cerrar sesión?'
+      );
+
+      if (confirmed) {
+        void logout();
+      }
+
+      return;
+    }
+
     Alert.alert(
-      'Cerrar sesion',
-      '¿Estas seguro que deseas cerrar sesion?',
+      'Cerrar sesión',
+      '¿Estás seguro de que deseas cerrar sesión?',
       [
-        { text: 'Cancelar', style: 'cancel' },
         {
-          text: 'Cerrar sesion',
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Cerrar sesión',
           style: 'destructive',
-          onPress: async () => {
-            await logout();
-            router.replace('/login');
+          onPress: () => {
+            void logout();
           },
         },
       ]

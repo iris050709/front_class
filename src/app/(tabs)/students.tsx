@@ -18,10 +18,10 @@ import {
 } from 'react-native';
 import { useSelector } from 'react-redux';
 
-import { ErrorMessage, Loading } from '../components';
-import StudentList from '../components/StudentList';
-import { useStudents } from '../hooks/useStudents';
-import { RootState } from '../store/store';
+import { ErrorMessage, Loading } from '../../components';
+import StudentList from '../../components/StudentList';
+import { useStudents } from '../../hooks/useStudents';
+import { RootState } from '../../store/store';
 
 export default function StudentsScreen() {
   const router = useRouter();
