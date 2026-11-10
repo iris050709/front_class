@@ -208,63 +208,62 @@ export default function HomeScreen() {
           </TouchableOpacity>
         ))}
 
-        {/* CARRITO DE COMPRAS */}
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>
-          Compras
-        </Text>
+        {/* CARRITO DE COMPRAS: SOLO ADMINISTRADORES */}
+        {isAdmin && (
+          <>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              Compras
+            </Text>
 
-        <TouchableOpacity
-          style={[
-            styles.actionCard,
-            { backgroundColor: colors.card },
-          ]}
-          onPress={() => router.push('/cart-test')}
-          activeOpacity={0.7}
-        >
-          <View style={styles.cartIconContainer}>
-            <Ionicons
-              name="cart-outline"
-              size={24}
-              color="#FFFFFF"
-            />
+            <TouchableOpacity
+              style={[
+                styles.actionCard,
+                { backgroundColor: colors.card },
+              ]}
+              onPress={() => router.push('/cart-test')}
+              activeOpacity={0.7}
+            >
+              <View style={styles.cartIconContainer}>
+                <Ionicons
+                  name="cart-outline"
+                  size={24}
+                  color="#FFFFFF"
+                />
 
-            {itemCount > 0 && (
-              <View style={styles.cartBadge}>
-                <Text style={styles.cartBadgeText}>
-                  {itemCount > 99 ? '99+' : itemCount}
+                {itemCount > 0 && (
+                  <View style={styles.cartBadge}>
+                    <Text style={styles.cartBadgeText}>
+                      {itemCount > 99 ? '99+' : itemCount}
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              <View style={styles.actionContent}>
+                <Text style={[styles.actionTitle, { color: colors.text }]}>
+                  Carrito de compras
+                </Text>
+
+                <Text
+                  style={[
+                    styles.actionDescription,
+                    { color: colors.secondary },
+                  ]}
+                >
+                  {itemCount === 0
+                    ? 'No tienes productos agregados'
+                    : `${itemCount} producto(s) en tu carrito`}
                 </Text>
               </View>
-            )}
-          </View>
 
-          <View style={styles.actionContent}>
-            <Text
-              style={[
-                styles.actionTitle,
-                { color: colors.text },
-              ]}
-            >
-              Carrito de compras
-            </Text>
-
-            <Text
-              style={[
-                styles.actionDescription,
-                { color: colors.secondary },
-              ]}
-            >
-              {itemCount === 0
-                ? 'No tienes productos agregados'
-                : `${itemCount} producto(s) en tu carrito`}
-            </Text>
-          </View>
-
-          <Ionicons
-            name="chevron-forward"
-            size={20}
-            color={colors.secondary}
-          />
-        </TouchableOpacity>
+              <Ionicons
+                name="chevron-forward"
+                size={20}
+                color={colors.secondary}
+              />
+            </TouchableOpacity>
+          </>
+        )}
 
         {!user && (
           <Text style={[styles.loadingText, { color: colors.secondary }]}>
