@@ -1,3 +1,4 @@
+
 /**
  * Pantalla de perfil de usuario
  */
@@ -13,12 +14,16 @@ import {
   View,
 } from 'react-native';
 
+import { useRouter } from 'expo-router';
+
+import { useAuthContext } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
-import { useAuth } from '../../hooks/useAuth';
 
 export default function ProfileScreen() {
+  const router = useRouter();
+
   const { colors, theme, toggleTheme } = useTheme();
-  const { user, logout } = useAuth();
+  const { user, logout } = useAuthContext();
 
   const [logoutModalVisible, setLogoutModalVisible] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -38,6 +43,7 @@ export default function ProfileScreen() {
     try {
       setLoggingOut(true);
       await logout();
+      router.replace('/login');
     } finally {
       setLoggingOut(false);
       setLogoutModalVisible(false);

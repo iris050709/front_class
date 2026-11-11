@@ -93,7 +93,7 @@ export default function ErrorMessage({ error, onRetry, onDismiss }: ErrorMessage
    */
   const message = typeof error === 'string' 
     ? error 
-    : error?.message || 'Error desconocido';
+    : (error && error.message) ? error.message : 'Error desconocido';
 
   /**
    * ERROR #5: Stale Closure en Callbacks
@@ -305,7 +305,7 @@ export default function ErrorMessage({ error, onRetry, onDismiss }: ErrorMessage
           { text: 'Cancelar', style: 'cancel' },
           { 
             text: 'Sí', 
-            onPress: () => onRetryRef.current?.()
+            onPress: () => onRetryRef.current && onRetryRef.current()
           }
         ]
       );

@@ -15,9 +15,9 @@ import {
   View,
 } from 'react-native';
 
+import { useAuthContext } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { useTheme } from '../../context/ThemeContext';
-import { useAuth } from '../../hooks/useAuth';
 
 type Action = {
   title: string;
@@ -30,7 +30,10 @@ type Action = {
 export default function HomeScreen() {
   const router = useRouter();
   const { colors } = useTheme();
-  const { user } = useAuth();
+
+  // Autenticación mediante AuthContext.
+  const { user, initializing } = useAuthContext();
+
   const { itemCount } = useCart();
 
   // Obtener nombre completo.
@@ -265,9 +268,9 @@ export default function HomeScreen() {
           </>
         )}
 
-        {!user && (
+        {!user && !initializing && (
           <Text style={[styles.loadingText, { color: colors.secondary }]}>
-            Cargando información del usuario...
+            No hay información de usuario disponible.
           </Text>
         )}
 
@@ -372,6 +375,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 20,
   },
+
   cartIconContainer: {
     width: 44,
     height: 44,

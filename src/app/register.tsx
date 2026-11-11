@@ -6,24 +6,30 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
+import { useAuthContext } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
 import { useTheme } from '../context/ThemeContext';
-import { useAuth } from '../hooks/useAuth';
 
 export default function RegisterScreen() {
   const router = useRouter();
 
-  const { register, loading, error } = useAuth();
+  const {
+    register,
+    loading,
+    error,
+    clearError,
+  } = useAuthContext();
+
   const { showSuccess, showError } = useNotification();
   const { colors, theme, toggleTheme } = useTheme();
 
@@ -37,62 +43,75 @@ export default function RegisterScreen() {
   const handleRegister = async () => {
     const cleanEmail = email.trim().toLowerCase();
 
+    // Validar campos.
     if (!cleanEmail || !password || !confirmPassword) {
       showError(
         'Campos incompletos',
-        'Todos los campos son obligatorios.',
+        'Todos los campos son obligatorios.'
       );
       return;
     }
 
-    if (!cleanEmail.includes('@')) {
+    // Validar correo.
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
       showError(
         'Correo inválido',
-        'Ingresa un correo electrónico válido.',
+        'Ingresa un correo electrónico válido.'
       );
       return;
     }
 
+    // Validar coincidencia de contraseñas.
     if (password !== confirmPassword) {
       showError(
         'Contraseñas diferentes',
-        'Las contraseñas no coinciden.',
+        'Las contraseñas no coinciden.'
       );
       return;
     }
 
+    // Validar longitud.
     if (password.length < 8) {
       showError(
         'Contraseña inválida',
-        'La contraseña debe tener al menos 8 caracteres.',
+        'La contraseña debe tener al menos 8 caracteres.'
       );
       return;
     }
 
+    clearError();
+
     try {
+      console.log('Enviando solicitud de registro mediante AuthContext...');
+
       const success = await register({
         email: cleanEmail,
         password,
       });
 
       if (success) {
+        console.log('Registro exitoso.');
+
         showSuccess(
           '¡Registro exitoso!',
-          'Tu cuenta se creó correctamente.',
+          'Tu cuenta se creó correctamente.'
         );
 
         router.replace('/(tabs)/home');
       } else {
         showError(
-        'Error al registrar',
-        error?.message ||
-            'No fue posible crear la cuenta. Inténtalo nuevamente.',
+          'Error al registrar',
+          error?.message ||
+            'No fue posible crear la cuenta. Inténtalo nuevamente.'
         );
       }
-    } catch {
+    } catch (err) {
+      console.error('Error en registro:', err);
+
       showError(
-        'Error de conexión',
-        'No fue posible completar el registro. Verifica tu conexión.',
+        'Error de registro',
+        error?.message ||
+          'No fue posible completar el registro. Verifica los datos e inténtalo nuevamente.'
       );
     }
   };
@@ -111,20 +130,22 @@ export default function RegisterScreen() {
         keyboardDismissMode="on-drag"
         showsVerticalScrollIndicator={false}
       >
-        {/* Encabezado */}
+        {/* Encabezado centrado */}
         <View style={styles.header}>
-          <View
-            style={[
-              styles.logoContainer,
-              { backgroundColor: colors.primary },
-            ]}
-          >
-            <Text style={styles.logoText}>S</Text>
-          </View>
+          <View style={styles.brand}>
+            <View
+              style={[
+                styles.logoContainer,
+                { backgroundColor: colors.primary },
+              ]}
+            >
+              <Text style={styles.logoText}>S</Text>
+            </View>
 
-          <Text style={[styles.brandName, { color: colors.text }]}>
-            SISTEMA
-          </Text>
+            <Text style={[styles.brandName, { color: colors.text }]}>
+              SISTEMA
+            </Text>
+          </View>
 
           <Text
             style={[
@@ -134,10 +155,8 @@ export default function RegisterScreen() {
           >
             Plataforma de gestión de alumnos
           </Text>
-        </View>
 
-        {/* Botón de tema */}
-        <View style={styles.themeContainer}>
+          {/* Botón de tema centrado */}
           <TouchableOpacity
             onPress={toggleTheme}
             style={[
@@ -147,13 +166,15 @@ export default function RegisterScreen() {
                 borderColor: colors.border,
               },
             ]}
+            accessibilityRole="button"
+            accessibilityLabel="Cambiar tema"
           >
             <Text style={styles.themeIcon}>
               {theme === 'light' ? '🌙' : '☀️'}
             </Text>
 
             <Text style={[styles.themeText, { color: colors.text }]}>
-              {theme === 'light' ? 'Modo oscuro' : 'Modo claro'}
+              {theme === 'light' ? 'Oscuro' : 'Claro'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -327,58 +348,73 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
     paddingHorizontal: 24,
     paddingVertical: 35,
   },
+
+  // Encabezado
   header: {
     alignItems: 'center',
     marginBottom: 22,
   },
+
+  brand: {
+    alignItems: 'center',
+    gap: 10,
+  },
+
   logoContainer: {
     width: 62,
     height: 62,
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
   },
+
   logoText: {
     color: '#FFFFFF',
     fontSize: 32,
     fontWeight: 'bold',
   },
+
   brandName: {
     fontSize: 23,
     fontWeight: '800',
     letterSpacing: 3,
   },
+
   brandDescription: {
     fontSize: 13,
     marginTop: 5,
+    marginBottom: 18,
   },
-  themeContainer: {
-    alignItems: 'flex-end',
-    marginBottom: 16,
-  },
+
+  // Botón de tema
   themeButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
     paddingVertical: 9,
     paddingHorizontal: 13,
     borderRadius: 20,
     borderWidth: 1,
   },
+
   themeIcon: {
-    fontSize: 15,
-    marginRight: 7,
+    fontSize: 16,
   },
+
   themeText: {
     fontSize: 12,
     fontWeight: '600',
   },
+
+  // Tarjeta del formulario
   formCard: {
     width: '100%',
     maxWidth: 450,
@@ -387,21 +423,25 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
   },
+
   title: {
     fontSize: 27,
     fontWeight: '800',
     marginBottom: 8,
   },
+
   subtitle: {
     fontSize: 14,
     lineHeight: 21,
     marginBottom: 25,
   },
+
   label: {
     fontSize: 13,
     fontWeight: '700',
     marginBottom: 8,
   },
+
   inputContainer: {
     minHeight: 50,
     flexDirection: 'row',
@@ -411,24 +451,30 @@ const styles = StyleSheet.create({
     marginBottom: 19,
     paddingHorizontal: 13,
   },
+
   input: {
     flex: 1,
     height: 50,
     fontSize: 14,
   },
+
   passwordInput: {
     flex: 1,
     height: 50,
     fontSize: 14,
     paddingVertical: 0,
   },
+
   passwordToggle: {
     paddingVertical: 10,
     paddingLeft: 8,
   },
+
   toggleText: {
     fontWeight: '600',
   },
+
+  // Botón de registro
   registerButton: {
     minHeight: 52,
     justifyContent: 'center',
@@ -436,14 +482,18 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     marginTop: 7,
   },
+
   disabledButton: {
     opacity: 0.6,
   },
+
   registerButtonText: {
     color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '700',
   },
+
+  // Enlace de inicio de sesión
   loginContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -452,13 +502,17 @@ const styles = StyleSheet.create({
     marginTop: 23,
     gap: 5,
   },
+
   loginText: {
     fontSize: 13,
   },
+
   loginLink: {
     fontSize: 13,
     fontWeight: '700',
   },
+
+  // Pie de página
   footer: {
     textAlign: 'center',
     fontSize: 11,

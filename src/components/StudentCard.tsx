@@ -6,7 +6,13 @@
  */
 
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+
 import { useTheme } from '../context/ThemeContext';
 import { Student } from '../types/student';
 
@@ -31,10 +37,11 @@ const StudentCard = React.memo(
             borderColor: colors.border,
           },
         ]}
-        onPress={() => onPress?.(student)}
+        onPress={() => onPress && onPress(student)}
         activeOpacity={0.7}
-        accessible={true}
-        accessibilityLabel={`Estudiante ${student.nombre || ''} ${student.apellido || ''}`}
+        accessible
+        accessibilityRole="button"
+        accessibilityLabel={`Estudiante ${(student.nombre ? student.nombre.charAt(0) : '?')}${(student.apellido ? student.apellido.charAt(0) : '?')}`}
         accessibilityHint="Toca para ver los detalles del estudiante"
       >
         <View style={styles.header}>

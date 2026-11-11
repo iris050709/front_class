@@ -6,11 +6,11 @@
 
 import { useMemo, useState } from 'react';
 import {
-    FlatList,
-    Pressable,
-    StyleSheet,
-    Text,
-    View,
+  FlatList,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
 
 import { useTheme } from '../context/ThemeContext';
@@ -42,13 +42,16 @@ export default function StudentList({
 
     return students.filter((student) => {
       const fullName =
-        `${student.nombre} ${student.apellido}`.toLowerCase();
+        `${student.nombre ?? ''} ${student.apellido ?? ''}`.toLowerCase();
 
-      const matricula = String(student.matricula).toLowerCase();
+      const matricula = String(student.matricula ?? '').toLowerCase();
+
+      const email = String(student.email ?? '').toLowerCase();
 
       return (
         fullName.includes(query) ||
-        matricula.includes(query)
+        matricula.includes(query) ||
+        email.includes(query)
       );
     });
   }, [students, searchQuery]);
@@ -126,18 +129,10 @@ export default function StudentList({
               },
             ]}
           >
-            <Pressable
-              onPress={() => onStudentPress(item)}
-              style={({ pressed }) => [
-                styles.studentCard,
-                pressed && styles.pressed,
-              ]}
-            >
-              <StudentCard
-                student={item}
-                onPress={() => onStudentPress(item)}
-              />
-            </Pressable>
+            <StudentCard
+              student={item}
+              onPress={onStudentPress}
+            />
 
             {onDeleteStudent && (
               <View
@@ -227,7 +222,7 @@ export default function StudentList({
               ]}
             >
               {searchQuery.trim()
-                ? 'Prueba con otro nombre o matrícula.'
+                ? 'Prueba con otro nombre, apellido, matrícula o correo electrónico.'
                 : 'Los estudiantes registrados aparecerán aquí.'}
             </Text>
           </View>

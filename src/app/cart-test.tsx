@@ -1,11 +1,12 @@
+
 import { Ionicons } from "@expo/vector-icons";
 import { Stack } from "expo-router";
 import {
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 import { useCart } from "../context/CartContext";
@@ -32,7 +33,6 @@ export default function CartTestScreen() {
   } = useNotification();
 
   const isDark = theme === "dark";
-
   const dangerColor = isDark ? "#F87171" : "#DC2626";
 
   const products = [
@@ -106,21 +106,49 @@ export default function CartTestScreen() {
 
   return (
     <>
-      {/* ENCABEZADO SUPERIOR DE EXPO ROUTER */}
+      {/* ENCABEZADO NATIVO DE EXPO ROUTER */}
       <Stack.Screen
         options={{
-          title: "Carrito de compras",
-          headerStyle: {
-            backgroundColor: colors.background,
-          },
-          headerTintColor: colors.text,
-          headerTitleStyle: {
-            color: colors.text,
-            fontWeight: "600",
-          },
-          headerShadowVisible: false,
+            title: "Carrito de compras",
+            headerShown: true,
+
+            headerStyle: {
+                backgroundColor: colors.background,
+            },
+
+            headerTintColor: colors.text,
+
+            headerTitleStyle: {
+                color: colors.text,
+                fontWeight: "600",
+            },
+
+            headerShadowVisible: false,
+
+            headerRight: () => (
+                <TouchableOpacity
+                    onPress={toggleTheme}
+                    activeOpacity={0.7}
+                    style={{
+                        marginRight: 8,
+                        padding: 8,
+                        borderRadius: 10,
+                        backgroundColor: colors.card,
+                        borderWidth: 1,
+                        borderColor: colors.border,
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel="Cambiar tema"
+                >
+                    <Ionicons
+                        name={isDark ? "sunny-outline" : "moon-outline"}
+                        size={22}
+                        color={colors.primary}
+                    />
+                </TouchableOpacity>
+            ),
         }}
-      />
+    />
 
       <ScrollView
         style={[
@@ -130,7 +158,7 @@ export default function CartTestScreen() {
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
       >
-        {/* Encabezado */}
+        {/* ENCABEZADO DEL CONTENIDO */}
         <View style={styles.header}>
           <View style={styles.headerText}>
             <Text style={[styles.eyebrow, { color: colors.secondary }]}>
@@ -146,42 +174,21 @@ export default function CartTestScreen() {
             </Text>
           </View>
 
-          <View style={styles.headerActions}>
-            <TouchableOpacity
-              style={[
-                styles.themeButton,
-                {
-                  backgroundColor: colors.card,
-                  borderColor: colors.border,
-                },
-              ]}
-              onPress={handleThemeChange}
-              activeOpacity={0.7}
-              accessibilityLabel="Cambiar tema"
-            >
-              <Ionicons
-                name={isDark ? "sunny-outline" : "moon-outline"}
-                size={21}
-                color={colors.primary}
-              />
-            </TouchableOpacity>
-
-            <View
-              style={[
-                styles.headerIcon,
-                { backgroundColor: colors.card },
-              ]}
-            >
-              <Ionicons
-                name="cart-outline"
-                size={27}
-                color={colors.primary}
-              />
-            </View>
+          <View
+            style={[
+              styles.headerIcon,
+              { backgroundColor: colors.card },
+            ]}
+          >
+            <Ionicons
+              name="cart-outline"
+              size={27}
+              color={colors.primary}
+            />
           </View>
         </View>
 
-        {/* Resumen */}
+        {/* RESUMEN */}
         <View
           style={[
             styles.summaryCard,
@@ -211,7 +218,7 @@ export default function CartTestScreen() {
           </View>
         </View>
 
-        {/* Productos disponibles */}
+        {/* PRODUCTOS DISPONIBLES */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
@@ -298,7 +305,7 @@ export default function CartTestScreen() {
           })}
         </View>
 
-        {/* Productos en el carrito */}
+        {/* PRODUCTOS EN EL CARRITO */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
@@ -438,7 +445,7 @@ export default function CartTestScreen() {
           )}
         </View>
 
-        {/* Resumen final */}
+        {/* RESUMEN FINAL */}
         <View
           style={[
             styles.totalCard,
@@ -513,10 +520,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: 5,
   },
-  headerActions: {
-    flexDirection: "row",
+  headerIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 14,
     alignItems: "center",
-    gap: 10,
+    justifyContent: "center",
   },
   themeButton: {
     width: 42,
@@ -525,13 +534,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     justifyContent: "center",
     alignItems: "center",
-  },
-  headerIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
+    marginRight: 5,
   },
   summaryCard: {
     padding: 22,

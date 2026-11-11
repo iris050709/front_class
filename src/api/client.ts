@@ -1,16 +1,43 @@
+
 /**
- * Cliente HTTP configurado con Axios
- * Incluye interceptores para manejo automático de tokens y errores
+ * Cliente HTTP configurado con Axios.
+ * Incluye interceptores para manejo automático de tokens,
+ * renovación de sesión y errores de autenticación.
  */
 
-import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
-import { clearTokens, getAccessToken, getRefreshToken, saveAccessToken, saveRefreshToken } from '../utils/storage';
+import axios, {
+  AxiosInstance,
+  InternalAxiosRequestConfig,
+} from 'axios';
 
-// URL base del backend - cambiar según tu configuración
+import {
+  clearTokens,
+  getAccessToken,
+  getRefreshToken,
+  saveAccessToken,
+  saveRefreshToken,
+} from '../utils/storage';
+
 const API_BASE_URL = 'http://localhost:3000';
-//const API_BASE_URL = 'http://192.168.1.78:3000';
 
-// Instancia de Axios configurada
+// Para evitar que una misma petición se reintente infinitamente.
+interface CustomAxiosRequestConfig
+  extends InternalAxiosRequestConfig {
+  _retry?: boolean;
+}
+
+// Permite avisar a AuthContext cuando la sesión termina.
+type AuthFailureHandler = (() => void) | null;
+
+let authFailureHandler: AuthFailureHandler = null;
+
+export function setAuthFailureHandler(
+  handler: AuthFailureHandler
+): void {
+  authFailureHandler = handler;
+}
+
+// Instancia de Axios.
 const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10000,
@@ -19,63 +46,120 @@ const apiClient: AxiosInstance = axios.create({
   },
 });
 
-// Interceptor de request: agrega el token de acceso automáticamente
+// Una sola renovación de token para varias peticiones simultáneas.
+let refreshPromise: Promise<string> | null = null;
+
+/**
+ * Renovar los tokens utilizando el refreshToken.
+ */
+async function renewAccessToken(): Promise<string> {
+  const refreshToken = await getRefreshToken();
+
+  if (!refreshToken) {
+    throw new Error('Credenciales inválidas.');
+  }
+
+  const response = await axios.post(
+    `${API_BASE_URL}/api/auth/refresh`,
+    { refreshToken },
+    {
+      timeout: 10000,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+
+  const {
+    accessToken,
+    refreshToken: newRefreshToken,
+  } = response.data;
+
+  if (!accessToken || !newRefreshToken) {
+    throw new Error(
+      'La API no devolvió los nuevos tokens necesarios.'
+    );
+  }
+
+  await saveAccessToken(accessToken);
+  await saveRefreshToken(newRefreshToken);
+
+  return accessToken;
+}
+
+// Interceptor de peticiones: agrega el accessToken.
 apiClient.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
     const token = await getAccessToken();
+
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Interceptor de response: maneja errores 401 y renueva tokens
+// Interceptor de respuestas: maneja errores y renueva tokens.
 apiClient.interceptors.response.use(
   (response) => response,
+
   async (error) => {
-    const originalRequest = error.config;
+    const originalRequest =
+      error.config as CustomAxiosRequestConfig | undefined;
 
-    // Si es error 401 y no es un intento de refresh
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
-
-      try {
-        // Intentar renovar el token
-        const refreshToken = await getRefreshToken();
-        
-        if (!refreshToken) {
-          // No hay refresh token, redirigir a login
-          await clearTokens();
-          return Promise.reject(error);
-        }
-
-        // Llamar al endpoint de refresh
-        const response = await axios.post(`${API_BASE_URL}/api/auth/refresh`, {
-          refreshToken,
-        });
-
-        const { accessToken, refreshToken: newRefreshToken } = response.data;
-
-        // Guardar nuevos tokens
-        
-        await saveAccessToken(accessToken);
-        await saveRefreshToken(newRefreshToken);
-
-        // Reintentar la petición original con el nuevo token
-        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-        return apiClient(originalRequest);
-      } catch (refreshError) {
-        // Error al refrescar, limpiar tokens y rechazar
-        await clearTokens();
-        return Promise.reject(refreshError);
-      }
+    if (!originalRequest) {
+      return Promise.reject(error);
     }
 
-    return Promise.reject(error);
+    const status = error.response?.status;
+
+    // No intentar renovar ante errores diferentes de 401.
+    if (status !== 401) {
+      return Promise.reject(error);
+    }
+
+    // Evitar repetir una petición más de una vez.
+    if (originalRequest._retry) {
+      return Promise.reject(error);
+    }
+
+    originalRequest._retry = true;
+
+    try {
+      // Si otra petición ya está renovando el token,
+      // esperar a que termine.
+      if (!refreshPromise) {
+        refreshPromise = renewAccessToken().finally(() => {
+          refreshPromise = null;
+        });
+      }
+
+      const newAccessToken = await refreshPromise;
+
+      // Reintentar la petición original con el nuevo token.
+      originalRequest.headers.Authorization =
+        `Bearer ${newAccessToken}`;
+
+      return apiClient(originalRequest);
+
+    } catch (refreshError) {
+      // Si no se puede renovar la sesión, eliminar los tokens.
+      try {
+        await clearTokens();
+      } catch (storageError) {
+        console.error(
+          'Error eliminando tokens:',
+          storageError
+        );
+      }
+
+      // Avisar a AuthContext que la sesión terminó.
+      authFailureHandler?.();
+
+      return Promise.reject(refreshError);
+    }
   }
 );
 

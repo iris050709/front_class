@@ -1,57 +1,90 @@
+
 /**
  * Pantalla de login
+ * Autenticación mediante Axios y AuthContext.
  */
 
-import { useRouter } from "expo-router";
+import { useRouter } from 'expo-router';
+import { useState } from 'react';
 import {
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
-} from "react-native";
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
-import LoginForm from "../components/LoginForm";
-import { useNotification } from "../context/NotificationContext";
-import { useTheme } from "../context/ThemeContext";
-import { useLogin } from "../hooks/useLogin";
+import LoginForm from '../components/LoginForm';
+import { useAuthContext } from '../context/AuthContext';
+import { useNotification } from '../context/NotificationContext';
+import { useTheme } from '../context/ThemeContext';
 
 export default function LoginScreen() {
   const router = useRouter();
 
-  const { login, loading, error } = useLogin();
+  const { login, error, clearError } = useAuthContext();
+
   const { showError, showSuccess } = useNotification();
   const { colors, theme, toggleTheme } = useTheme();
 
-  const handleLogin = async (email: string, password: string) => {
-    try {
-      const success = await login(email.trim().toLowerCase(), password);
+  const [loading, setLoading] = useState(false);
 
-      if (success) {
-        showSuccess("Bienvenido", "Inicio de sesión exitoso");
-        router.replace("/(tabs)/home");
-      } else {
+  const handleLogin = async (email: string, password: string) => {
+    if (!email.trim() || !password) {
+      showError('Error', 'Por favor completa todos los campos.');
+      return;
+    }
+
+    setLoading(true);
+    clearError();
+
+    try {
+      console.log('Enviando solicitud de login mediante AuthContext y Axios...');
+
+      const success = await login({
+          email: email.trim().toLowerCase(),
+          password,
+      });
+
+      if (!success) {
         showError(
-            "Error",
-            error || "No se pudo iniciar sesión. Verifica tus credenciales."
+          'Error',
+          'Credenciales incorrectas o usuario no encontrado.'
         );
+        return;
       }
+
+      console.log('Login exitoso.');
+
+      showSuccess(
+        'Bienvenido',
+        'Inicio de sesión exitoso.'
+      );
+
+      router.replace('/(tabs)/home');
+
     } catch (err) {
-      console.error("Error en LoginScreen:", err);
+      console.error('Error en login:', err);
 
       showError(
-        "Error",
-        "Ocurrió un problema al iniciar sesión. Inténtalo nuevamente."
+          'Error',
+          error?.message || 'No se pudo conectar al servidor. Inténtalo nuevamente.'
       );
+
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <KeyboardAvoidingView
-      style={[styles.screen, { backgroundColor: colors.background }]}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      style={[
+        styles.screen,
+        { backgroundColor: colors.background },
+      ]}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -60,11 +93,21 @@ export default function LoginScreen() {
       >
         <View style={styles.header}>
           <View style={styles.brand}>
-            <View style={[styles.logo, { backgroundColor: colors.primary }]}>
+            <View
+              style={[
+                styles.logo,
+                { backgroundColor: colors.primary },
+              ]}
+            >
               <Text style={styles.logoText}>S</Text>
             </View>
 
-            <Text style={[styles.brandName, { color: colors.text }]}>
+            <Text
+              style={[
+                styles.brandName,
+                { color: colors.text },
+              ]}
+            >
               SISTEMA
             </Text>
           </View>
@@ -82,21 +125,36 @@ export default function LoginScreen() {
             accessibilityLabel="Cambiar tema"
           >
             <Text style={styles.themeIcon}>
-              {theme === "light" ? "🌙" : "☀️"}
+              {theme === 'light' ? '🌙' : '☀️'}
             </Text>
 
-            <Text style={[styles.themeText, { color: colors.text }]}>
-              {theme === "light" ? "Oscuro" : "Claro"}
+            <Text
+              style={[
+                styles.themeText,
+                { color: colors.text },
+              ]}
+            >
+              {theme === 'light' ? 'Oscuro' : 'Claro'}
             </Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.welcome}>
-          <Text style={[styles.welcomeTitle, { color: colors.text }]}>
+          <Text
+            style={[
+              styles.welcomeTitle,
+              { color: colors.text },
+            ]}
+          >
             ¡Bienvenido!
           </Text>
 
-          <Text style={[styles.welcomeSubtitle, { color: colors.secondary }]}>
+          <Text
+            style={[
+              styles.welcomeSubtitle,
+              { color: colors.secondary },
+            ]}
+          >
             Inicia sesión para continuar con tu cuenta.
           </Text>
         </View>
@@ -110,30 +168,19 @@ export default function LoginScreen() {
             },
           ]}
         >
-            <LoginForm
-                onLogin={handleLogin}
-                loading={loading}
-                error={error || ""}
-            />
+          <LoginForm
+              onLogin={handleLogin}
+              loading={loading}
+              error={error?.message || ''}
+          />
         </View>
 
-        <View style={styles.footer}>
-          <Text style={[styles.footerText, { color: colors.secondary }]}>
-            ¿Todavía no tienes una cuenta?
-          </Text>
-
-          <TouchableOpacity
-            onPress={() => router.push("/register")}
-            style={styles.registerButton}
-            accessibilityRole="button"
-          >
-            <Text style={[styles.registerText, { color: colors.primary }]}>
-              Crear una cuenta
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        <Text style={[styles.bottomText, { color: colors.secondary }]}>
+        <Text
+          style={[
+            styles.bottomText,
+            { color: colors.secondary },
+          ]}
+        >
           Sistema de gestión de alumnos
         </Text>
       </ScrollView>
@@ -147,44 +194,44 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: "center",
+    justifyContent: 'center',
     paddingHorizontal: 24,
     paddingVertical: 30,
-    width: "100%",
+    width: '100%',
     maxWidth: 520,
-    alignSelf: "center",
+    alignSelf: 'center',
   },
   header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 55,
   },
   brand: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 10,
   },
   logo: {
     width: 42,
     height: 42,
     borderRadius: 13,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   logoText: {
-    color: "#FFFFFF",
+    color: '#FFFFFF',
     fontSize: 23,
-    fontWeight: "bold",
+    fontWeight: 'bold',
   },
   brandName: {
     fontSize: 17,
-    fontWeight: "800",
+    fontWeight: '800',
     letterSpacing: 1.5,
   },
   themeButton: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 7,
     paddingHorizontal: 13,
     paddingVertical: 9,
@@ -196,14 +243,14 @@ const styles = StyleSheet.create({
   },
   themeText: {
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: '600',
   },
   welcome: {
     marginBottom: 25,
   },
   welcomeTitle: {
     fontSize: 32,
-    fontWeight: "800",
+    fontWeight: '800',
     marginBottom: 9,
   },
   welcomeSubtitle: {
@@ -216,13 +263,13 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 5,
     elevation: 3,
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOpacity: 0.06,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 5 },
   },
   footer: {
-    alignItems: "center",
+    alignItems: 'center',
     marginTop: 28,
     gap: 7,
   },
@@ -234,10 +281,10 @@ const styles = StyleSheet.create({
   },
   registerText: {
     fontSize: 15,
-    fontWeight: "700",
+    fontWeight: '700',
   },
   bottomText: {
-    textAlign: "center",
+    textAlign: 'center',
     fontSize: 11,
     marginTop: 45,
   },

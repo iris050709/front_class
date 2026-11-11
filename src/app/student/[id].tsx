@@ -24,33 +24,22 @@ import {
 
 import { ErrorMessage, Loading } from '../../components';
 import StudentForm from '../../components/StudentForm';
+import { useAuthContext } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useApi } from '../../hooks/useApi';
-import { useAuth } from '../../hooks/useAuth';
 import type { Student } from '../../types/student';
 
 export default function StudentDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
 
-  const { user } = useAuth();
+  const { user, initializing } = useAuthContext();
   const { colors } = useTheme();
 
   const { showSuccess, showError } = useNotification();
 
   const isAdmin = user?.kind === 'user';
-  // Impedir que los estudiantes consulten detalles de otros estudiantes.
-  useEffect(() => {
-    if (user?.kind === 'student') {
-      router.replace('/(tabs)/home');
-    }
-  }, [user, router]);
-
-  // Evitar mostrar información mientras se realiza la redirección.
-  if (user?.kind === 'student') {
-    return null;
-  }
 
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
@@ -58,10 +47,24 @@ export default function StudentDetailScreen() {
 
   const styles = createStyles(colors);
 
+  const studentId = Number(id);
+  const validStudentId = Number.isInteger(studentId) && studentId > 0;
+
+  // Impedir que estudiantes o usuarios sin sesión accedan al detalle.
+  useEffect(() => {
+    if (!initializing && !isAdmin) {
+      router.replace('/(tabs)/home');
+    }
+  }, [initializing, isAdmin, router]);
+
   // Consultar estudiante.
   const fetchStudent = useCallback(() => {
-    return getStudentById(Number(id));
-  }, [id]);
+    if (!validStudentId) {
+      throw new Error('El identificador del estudiante no es válido.');
+    }
+
+    return getStudentById(studentId);
+  }, [studentId, validStudentId]);
 
   const {
     data: student,
@@ -69,6 +72,23 @@ export default function StudentDetailScreen() {
     error,
     execute: loadStudent,
   } = useApi(fetchStudent);
+
+  // Cargar información solamente después de verificar la sesión.
+  useEffect(() => {
+    if (!initializing && isAdmin && validStudentId) {
+      loadStudent();
+    }
+  }, [initializing, isAdmin, validStudentId, loadStudent]);
+
+  // Mientras se verifica la sesión, no mostrar información.
+  if (initializing) {
+    return <Loading message="Verificando sesión..." />;
+  }
+
+  // Evitar mostrar información a usuarios sin permisos.
+  if (!isAdmin) {
+    return null;
+  }
 
   // Actualizar estudiante.
   const handleEditStudent = async (
@@ -82,9 +102,7 @@ export default function StudentDetailScreen() {
       throw new Error(message);
     }
 
-    const studentId = Number(id);
-
-    if (!Number.isInteger(studentId) || studentId <= 0) {
+    if (!validStudentId) {
       const message = 'El identificador del estudiante no es válido.';
       showError(message);
       throw new Error(message);
@@ -98,22 +116,18 @@ export default function StudentDetailScreen() {
       await loadStudent();
 
       showSuccess('La información del estudiante se actualizó correctamente.');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error al actualizar estudiante:', err);
 
       const message =
-        err?.response?.data?.message ||
-        'No se pudo actualizar la información del estudiante.';
+        err instanceof Error
+          ? err.message
+          : 'No se pudo actualizar la información del estudiante.';
 
       showError(message);
       throw err;
     }
   };
-
-  // Cargar información.
-  useEffect(() => {
-    loadStudent();
-  }, [id, loadStudent]);
 
   // Abrir confirmación de eliminación.
   const openDeleteModal = () => {
@@ -133,9 +147,7 @@ export default function StudentDetailScreen() {
       return;
     }
 
-    const studentId = Number(id);
-
-    if (!id || !Number.isInteger(studentId) || studentId <= 0) {
+    if (!validStudentId) {
       setModalVisible(false);
       showError('El identificador del estudiante no es válido.');
       return;
@@ -151,16 +163,15 @@ export default function StudentDetailScreen() {
       showSuccess('El estudiante se eliminó correctamente.');
 
       router.replace('/(tabs)/students');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error al eliminar estudiante:', err);
-      console.error('Respuesta API:', err?.response?.data);
-      console.error('Estado HTTP:', err?.response?.status);
 
       setModalVisible(false);
 
       const message =
-        err?.response?.data?.message ||
-        'No se pudo eliminar el estudiante. Intenta nuevamente.';
+        err instanceof Error
+          ? err.message
+          : 'No se pudo eliminar el estudiante. Intenta nuevamente.';
 
       showError(message);
     } finally {
@@ -205,15 +216,20 @@ export default function StudentDetailScreen() {
       <Stack.Screen
         options={{
           title: 'Detalle del estudiante',
+          headerShown: true,
           headerStyle: {
             backgroundColor: colors.background,
           },
-          headerTintColor: colors.text,
+          headerTintColor: colors.primary,
           headerTitleStyle: {
             color: colors.text,
+            fontSize: 17,
             fontWeight: '700',
           },
+          headerTitleAlign: 'left',
           headerShadowVisible: false,
+          headerBackTitle: 'Estudiantes',
+          headerBackVisible: true,
         }}
       />
 

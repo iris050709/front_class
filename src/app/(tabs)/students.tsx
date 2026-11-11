@@ -5,8 +5,9 @@
  * Compatible con tema claro y oscuro.
  */
 
-import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useNotification } from '../../context/NotificationContext';
 
 import {
   ActivityIndicator,
@@ -17,13 +18,12 @@ import {
   View,
 } from 'react-native';
 
-import { useSelector } from 'react-redux';
 
 import { ErrorMessage, Loading } from '../../components';
 import StudentList from '../../components/StudentList';
+import { useAuthContext } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useStudents } from '../../hooks/useStudents';
-import { RootState } from '../../store/store';
 
 export default function StudentsScreen() {
   const router = useRouter();
@@ -31,9 +31,12 @@ export default function StudentsScreen() {
   const { colors, theme } = useTheme();
   const isDark = theme === 'dark';
 
-  const user = useSelector(
-    (state: RootState) => state.auth.user
-  );
+  const { user, initializing } = useAuthContext();
+  const { showSuccess, showInfo, showError } = useNotification();
+
+  // Evitar hacer una segunda consulta al entrar por primera vez.
+  // La carga inicial ya la realiza useStudents.
+  const firstFocus = useRef(true);
 
   const {
     students,
@@ -78,10 +81,37 @@ export default function StudentsScreen() {
 
   // Bloquear el acceso a estudiantes.
   useEffect(() => {
+    if (initializing) return;
+
     if (user && user.kind !== 'user') {
       router.replace('/(tabs)/profile');
     }
-  }, [user, router]);
+  }, [user, initializing, router]);
+
+  // Actualizar automáticamente al regresar a la lista.
+  useFocusEffect(
+    useCallback(() => {
+      // La primera carga ya se realiza desde useStudents.
+      if (firstFocus.current) {
+        firstFocus.current = false;
+        return;
+      }
+
+      // Consultar nuevamente cuando la pantalla recupera el foco.
+      refresh().catch(error => {
+        console.error(
+          'ERROR AL ACTUALIZAR AUTOMÁTICAMENTE:',
+          error
+        );
+
+        showError(
+          'Error de actualización',
+          'No se pudo actualizar la lista de estudiantes.'
+        );
+      });
+
+    }, [refresh, showError])
+  );
 
   // Abrir detalle del estudiante.
   const handleStudentPress = (student: { id: number }) => {
@@ -145,18 +175,39 @@ export default function StudentsScreen() {
     }
   };
 
-  // Actualizar lista.
+  // Actualizar lista manualmente.
   const onRefresh = useCallback(async () => {
     if (refreshing) return;
 
     setRefreshing(true);
 
     try {
-      await refresh();
+      const changed = await refresh();
+
+      if (changed) {
+        showSuccess(
+          'Lista actualizada',
+          'Se encontraron cambios en los estudiantes.'
+        );
+      } else {
+        showInfo(
+          'Sin cambios',
+          'La lista ya está actualizada.'
+        );
+      }
+
+    } catch (error) {
+      console.error('ERROR AL ACTUALIZAR:', error);
+
+      showError(
+        'Error de actualización',
+        'No se pudo actualizar la lista. Intenta nuevamente.'
+      );
+
     } finally {
       setRefreshing(false);
     }
-  }, [refresh, refreshing]);
+  }, [refresh, refreshing, showSuccess, showInfo, showError]);
 
   // Cerrar modal.
   const closeModal = () => {
@@ -167,7 +218,7 @@ export default function StudentsScreen() {
   };
 
   // Verificar sesión.
-  if (!user) {
+  if (initializing || !user) {
     return <Loading message="Verificando sesión..." />;
   }
 

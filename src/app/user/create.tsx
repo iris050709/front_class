@@ -4,7 +4,6 @@
  * Compatible con Web, Android e iOS.
  */
 
-import apiClient from '@/api/client';
 import { Stack, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
@@ -19,15 +18,22 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useAuth } from '../../hooks/useAuth';
 
+import { useAuthContext } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
 import { useTheme } from '../../context/ThemeContext';
 
 export default function CreateUserScreen() {
   const router = useRouter();
   const { colors } = useTheme();
-  const { user } = useAuth();
+
+  const {
+    user,
+    initializing,
+    createAdmin,
+    error,
+    clearError,
+  } = useAuthContext();
 
   const { showSuccess, showError, showWarning } = useNotification();
 
@@ -41,16 +47,24 @@ export default function CreateUserScreen() {
   const [loading, setLoading] = useState(false);
   const [confirmModalVisible, setConfirmModalVisible] = useState(false);
 
+  // Restringir el acceso a usuarios administradores.
   useEffect(() => {
-    if (user?.kind === 'student') {
+    if (initializing) return;
+
+    if (!user) {
+      router.replace('/login');
+      return;
+    }
+
+    if (user.kind !== 'user') {
       router.replace('/(tabs)/home');
     }
-  }, [user, router]);
+  }, [user, initializing, router]);
 
-  if (user?.kind === 'student') {
+  if (initializing || !user || user.kind !== 'user') {
     return null;
   }
-  
+
   // Regresar a la pantalla anterior.
   const handleGoBack = () => {
     if (router.canGoBack()) {
@@ -113,7 +127,7 @@ export default function CreateUserScreen() {
     setConfirmModalVisible(true);
   };
 
-  // Crear usuario administrador.
+  // Crear usuario administrador mediante AuthContext.
   const handleCreateUser = async () => {
     if (loading) return;
 
@@ -121,12 +135,21 @@ export default function CreateUserScreen() {
 
     setConfirmModalVisible(false);
     setLoading(true);
+    clearError();
 
     try {
-      await apiClient.post('/api/auth/users', {
+      const success = await createAdmin({
         email: normalizedEmail,
         password,
       });
+
+      if (!success) {
+        showError(
+          error?.message ||
+            'No se pudo crear el usuario. Verifica los datos e inténtalo nuevamente.'
+        );
+        return;
+      }
 
       setEmail('');
       setPassword('');
@@ -139,22 +162,13 @@ export default function CreateUserScreen() {
       setTimeout(() => {
         handleGoBack();
       }, 1000);
-    } catch (error: unknown) {
-      console.error('Error al crear usuario:', error);
-
-      const apiError = error as {
-        response?: {
-          data?: {
-            error?: string;
-            message?: string;
-          };
-        };
-      };
+    } catch (err: unknown) {
+      console.error('Error al crear usuario:', err);
 
       const message =
-        apiError.response?.data?.error ||
-        apiError.response?.data?.message ||
-        'No se pudo crear el usuario. Verifica tu conexión e inténtalo nuevamente.';
+        err instanceof Error
+          ? err.message
+          : 'No se pudo crear el usuario. Verifica tu conexión e inténtalo nuevamente.';
 
       showError(message);
     } finally {
@@ -173,16 +187,20 @@ export default function CreateUserScreen() {
       <Stack.Screen
         options={{
           title: 'Agregar usuario',
-          headerBackTitle: 'Regresar',
+          headerShown: true,
           headerStyle: {
             backgroundColor: colors.background,
           },
-          headerTintColor: colors.text,
+          headerTintColor: colors.primary,
           headerTitleStyle: {
             color: colors.text,
+            fontSize: 17,
             fontWeight: '700',
           },
+          headerTitleAlign: 'left',
           headerShadowVisible: false,
+          headerBackTitle: 'Regresar',
+          headerBackVisible: true,
         }}
       />
 
@@ -281,7 +299,12 @@ export default function CreateUserScreen() {
                 onPress={() => setShowPassword(!showPassword)}
                 disabled={loading}
               >
-                <Text style={[styles.showButtonText, { color: colors.primary }]}>
+                <Text
+                  style={[
+                    styles.showButtonText,
+                    { color: colors.primary },
+                  ]}
+                >
                   {showPassword ? 'Ocultar' : 'Mostrar'}
                 </Text>
               </TouchableOpacity>
@@ -320,7 +343,12 @@ export default function CreateUserScreen() {
                 }
                 disabled={loading}
               >
-                <Text style={[styles.showButtonText, { color: colors.primary }]}>
+                <Text
+                  style={[
+                    styles.showButtonText,
+                    { color: colors.primary },
+                  ]}
+                >
                   {showConfirmPassword ? 'Ocultar' : 'Mostrar'}
                 </Text>
               </TouchableOpacity>
@@ -435,6 +463,7 @@ export default function CreateUserScreen() {
                   },
                 ]}
                 onPress={() => setConfirmModalVisible(false)}
+                disabled={loading}
               >
                 <Text
                   style={[
@@ -450,8 +479,10 @@ export default function CreateUserScreen() {
                 style={[
                   styles.modalConfirmButton,
                   { backgroundColor: colors.primary },
+                  loading && styles.disabledButton,
                 ]}
                 onPress={handleCreateUser}
+                disabled={loading}
               >
                 <Text style={styles.modalConfirmText}>
                   Sí, crear

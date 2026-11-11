@@ -1,3 +1,4 @@
+
 /**
  * Hook personalizado para realizar peticiones HTTP.
  * Maneja automáticamente estados de loading, error y data.
@@ -5,7 +6,10 @@
  */
 
 import { useCallback, useRef, useState } from 'react';
-import { ApiError, handleApiError } from '../utils/errorHandler';
+import {
+  type ApiError,
+  handleApiError,
+} from '../utils/errorHandler';
 
 interface UseApiState<T> {
   data: T | null;
@@ -14,14 +18,13 @@ interface UseApiState<T> {
 }
 
 interface UseApiReturn<T> extends UseApiState<T> {
-  execute: (...args: any[]) => Promise<T | null>;
+  execute: (...args: unknown[]) => Promise<T | null>;
   reset: () => void;
 }
 
 export function useApi<T>(
-  apiFunction: (...args: any[]) => Promise<T>
+  apiFunction: (...args: unknown[]) => Promise<T>
 ): UseApiReturn<T> {
-
   const [state, setState] = useState<UseApiState<T>>({
     data: null,
     loading: false,
@@ -32,9 +35,14 @@ export function useApi<T>(
   const apiFunctionRef = useRef(apiFunction);
   apiFunctionRef.current = apiFunction;
 
-  // Esta función permanece estable entre renderizados.
+  // Identificar la petición más reciente.
+  const requestIdRef = useRef(0);
+
+  // Función estable entre renderizados.
   const execute = useCallback(
-    async (...args: any[]): Promise<T | null> => {
+    async (...args: unknown[]): Promise<T | null> => {
+      const currentRequestId = ++requestIdRef.current;
+
       setState((prev) => ({
         ...prev,
         loading: true,
@@ -44,21 +52,25 @@ export function useApi<T>(
       try {
         const result = await apiFunctionRef.current(...args);
 
-        setState({
-          data: result,
-          loading: false,
-          error: null,
-        });
+        if (currentRequestId === requestIdRef.current) {
+          setState({
+            data: result,
+            loading: false,
+            error: null,
+          });
+        }
 
         return result;
-      } catch (error) {
+      } catch (error: unknown) {
         const apiError = handleApiError(error);
 
-        setState({
-          data: null,
-          loading: false,
-          error: apiError,
-        });
+        if (currentRequestId === requestIdRef.current) {
+          setState({
+            data: null,
+            loading: false,
+            error: apiError,
+          });
+        }
 
         return null;
       }
@@ -66,8 +78,10 @@ export function useApi<T>(
     []
   );
 
-  // Reiniciar estados.
+  // Reiniciar estados e invalidar peticiones anteriores.
   const reset = useCallback(() => {
+    requestIdRef.current++;
+
     setState({
       data: null,
       loading: false,

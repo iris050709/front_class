@@ -5,7 +5,7 @@
  */
 
 import { Stack, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -16,31 +16,32 @@ import {
   View,
 } from 'react-native';
 
-import { useEffect } from 'react';
 import { createStudent } from '../../api/students.api';
 import StudentForm from '../../components/StudentForm';
+import { useAuthContext } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
 import { useTheme } from '../../context/ThemeContext';
-import { Student } from '../../types/student';
-
-import { useAuth } from '../../hooks/useAuth';
+import type { Student } from '../../types/student';
 
 export default function CreateStudentScreen() {
   const router = useRouter();
   const { colors } = useTheme();
-  const { user } = useAuth();
+  const { user, initializing } = useAuthContext();
 
   const { showSuccess, showError } = useNotification();
 
   const [loading, setLoading] = useState(false);
 
+  // Restringir el acceso a estudiantes.
   useEffect(() => {
-    if (user?.kind === 'student') {
+    if (!initializing && user?.kind !== 'user') {
       router.replace('/(tabs)/home');
     }
-  }, [user, router]);
+  }, [user, initializing, router]);
 
-  if (user?.kind === 'student') {
+  // Evitar mostrar el formulario mientras se verifica la sesión
+  // o cuando el usuario no tiene permisos de administrador.
+  if (initializing || user?.kind !== 'user') {
     return null;
   }
 
@@ -69,13 +70,13 @@ export default function CreateStudentScreen() {
       setTimeout(() => {
         router.replace('/(tabs)/students');
       }, 1000);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error al registrar estudiante:', err);
-      console.error('Respuesta API:', err?.response?.data);
 
       const message =
-        err?.response?.data?.message ||
-        'No se pudo registrar el estudiante. Intenta nuevamente.';
+        err instanceof Error
+          ? err.message
+          : 'No se pudo registrar el estudiante. Intenta nuevamente.';
 
       showError(message);
 
@@ -96,16 +97,20 @@ export default function CreateStudentScreen() {
       <Stack.Screen
         options={{
           title: 'Agregar estudiante',
-          headerBackTitle: 'Regresar',
+          headerShown: true,
           headerStyle: {
             backgroundColor: colors.background,
           },
-          headerTintColor: colors.text,
+          headerTintColor: colors.primary,
           headerTitleStyle: {
             color: colors.text,
+            fontSize: 17,
             fontWeight: '700',
           },
+          headerTitleAlign: 'left',
           headerShadowVisible: false,
+          headerBackTitle: 'Estudiantes',
+          headerBackVisible: true,
         }}
       />
 
